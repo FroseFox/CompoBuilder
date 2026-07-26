@@ -43,3 +43,18 @@
   }
  
 }
+.confirm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.auth-panel__form {
+  max-height: 90vh;
+  overflow-y: auto;
+}
