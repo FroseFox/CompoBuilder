@@ -44,17 +44,6 @@
  
 }
 .confirm-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  overflow-y: auto;
+  transform: translateY(80px);
 }
 
-.auth-panel__form {
-  max-height: 90vh;
-  overflow-y: auto;
-}
