@@ -41,4 +41,16 @@
     align-items: flex-end;
     gap: 6px;
   }
+  .auth-panel__overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.auth-panel {
+  max-height: 90vh;
+  overflow-y: auto;
+}
 }
