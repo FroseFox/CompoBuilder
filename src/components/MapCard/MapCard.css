@@ -1,0 +1,124 @@
+.map-card {
+  display: block;
+  overflow: hidden;
+  transition: transform var(--dur-med) var(--ease-out),
+    border-color var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+.map-card:hover,
+.map-card:focus-visible {
+  transform: translateY(-6px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lift);
+}
+
+.map-card__image-wrap {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.map-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.map-card:hover .map-card__image {
+  transform: scale(1.06);
+}
+
+.map-card__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(6, 9, 13, 0.75) 100%);
+}
+
+.map-card__count {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(10, 14, 20, 0.65);
+  backdrop-filter: blur(6px);
+  color: #ece8e1;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.map-card__count--full {
+  color: var(--role-sentinel);
+  border-color: color-mix(in srgb, var(--role-sentinel) 45%, transparent);
+  background: rgba(10, 14, 20, 0.75);
+}
+
+.map-card__body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-card__top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.map-card__name {
+  font-size: 1.02rem;
+  color: var(--text-primary);
+}
+
+.map-card__bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.map-card__players {
+  display: flex;
+}
+
+.map-card__players .player-avatar {
+  margin-left: -8px;
+}
+
+.map-card__players .player-avatar:first-child {
+  margin-left: 0;
+}
+
+.map-card__no-players {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+}
+
+.map-card__updated {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.map-card__comps-count {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(10, 14, 20, 0.65);
+  backdrop-filter: blur(6px);
+  color: #ece8e1;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}

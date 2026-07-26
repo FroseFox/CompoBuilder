@@ -1,0 +1,29 @@
+.player-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 14, 20, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 3px 8px 3px 3px;
+  backdrop-filter: blur(6px);
+}
+
+.player-select select {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #ece8e1;
+  font-size: 0.68rem;
+  font-weight: 600;
+  max-width: 84px;
+  padding: 2px 0;
+}
+
+.player-select select:focus {
+  outline: none;
+}
+
+.player-select select option {
+  color: #10161d;
+}

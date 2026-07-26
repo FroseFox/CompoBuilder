@@ -1,0 +1,80 @@
+/* ============================================
+   TOKENS — Comp Builder
+   Palette de marque Valorant : nuit tactique (#0F1923),
+   rouge signal (#FF4655), blanc "Realm" (#ECE8E1).
+   ============================================ */
+
+:root {
+  /* Marque (constante, ne change pas avec le thème) */
+  --brand-red: #ff4655;
+  --brand-red-dim: #ff4655cc;
+  --brand-red-soft: rgba(255, 70, 85, 0.14);
+  --brand-red-glow: rgba(255, 70, 85, 0.35);
+
+  /* Rôles */
+  --role-duelist: #ff5f6d;
+  --role-controller: #7c8cff;
+  --role-initiator: #ffb54c;
+  --role-sentinel: #3ddc97;
+
+  /* Typographie */
+  --font-display: 'Chakra Petch', 'Inter', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Rayon / rythme */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+
+  /* Transitions */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;
+  --dur-med: 320ms;
+  --dur-slow: 560ms;
+}
+
+/* ---------- Thème sombre (par défaut) ---------- */
+:root,
+[data-theme='dark'] {
+  --bg-base: #0b1119;
+  --bg-elevated: #0f1923;
+  --bg-panel: rgba(21, 30, 41, 0.66);
+  --bg-panel-solid: #141e29;
+  --bg-hover: rgba(255, 255, 255, 0.045);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text-primary: #ece8e1;
+  --text-secondary: #97a3ad;
+  --text-tertiary: #5c6a76;
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --scanline-opacity: 0.05;
+  --overlay-scrim: rgba(6, 9, 13, 0.72);
+}
+
+/* ---------- Thème clair ---------- */
+[data-theme='light'] {
+  --bg-base: #f3f2ee;
+  --bg-elevated: #ffffff;
+  --bg-panel: rgba(255, 255, 255, 0.72);
+  --bg-panel-solid: #ffffff;
+  --bg-hover: rgba(15, 25, 35, 0.04);
+  --border-subtle: rgba(15, 25, 35, 0.09);
+  --border-strong: rgba(15, 25, 35, 0.16);
+  --text-primary: #10161d;
+  --text-secondary: #4c5860;
+  --text-tertiary: #8a939b;
+  --shadow-soft: 0 8px 24px rgba(15, 25, 35, 0.08);
+  --shadow-lift: 0 20px 40px rgba(15, 25, 35, 0.14);
+  --scanline-opacity: 0.03;
+  --overlay-scrim: rgba(15, 20, 25, 0.45);
+}

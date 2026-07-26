@@ -1,0 +1,111 @@
+.dashboard {
+  padding: var(--space-7) 0 var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.dashboard__header p {
+  margin-top: 6px;
+}
+
+.dashboard__title {
+  font-size: clamp(1.7rem, 3.4vw, 2.2rem);
+  margin: 8px 0 4px;
+}
+
+.dashboard__stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.stat-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-card__value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2rem;
+  color: var(--text-primary);
+}
+
+.stat-card__label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.stat-card--validated .stat-card__value { color: var(--role-sentinel); }
+.stat-card--testing .stat-card__value { color: var(--role-initiator); }
+.stat-card--needs_work .stat-card__value { color: var(--role-duelist); }
+.stat-card--empty .stat-card__value { color: var(--text-tertiary); }
+
+.dashboard__progress-section {
+  padding: var(--space-5);
+}
+
+.dashboard__progress-caption {
+  margin-top: var(--space-3);
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.dashboard__lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.dashboard__bucket {
+  padding: var(--space-4);
+}
+
+.dashboard__bucket h3 {
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+}
+
+.dashboard__bucket-count {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+}
+
+.dashboard__bucket-empty {
+  font-size: 0.82rem;
+}
+
+.dashboard__bucket ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard__bucket a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.dashboard__bucket a:hover {
+  background: var(--bg-hover);
+  color: var(--brand-red);
+}

@@ -1,0 +1,40 @@
+.notes-editor {
+  position: relative;
+}
+
+.notes-editor textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 140px;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.notes-editor textarea:focus {
+  outline: none;
+  border-color: var(--brand-red);
+}
+
+.notes-editor__status {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-size: 0.68rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.notes-editor__status--saved {
+  color: var(--role-sentinel);
+}

@@ -1,0 +1,38 @@
+.player-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #0b1119;
+  background: var(--avatar-color, var(--text-tertiary));
+  border: 2px solid var(--bg-elevated);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.player-avatar--sm {
+  width: 22px;
+  height: 22px;
+  font-size: 0.58rem;
+}
+
+.player-avatar--md {
+  width: 30px;
+  height: 30px;
+  font-size: 0.68rem;
+}
+
+.player-avatar--lg {
+  width: 44px;
+  height: 44px;
+  font-size: 0.9rem;
+}
+
+.player-avatar--empty {
+  background: var(--bg-hover);
+  color: var(--text-tertiary);
+  border-style: dashed;
+  border-color: var(--border-strong);
+}

@@ -1,0 +1,26 @@
+{
+  "name": "valorant-comp-builder",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Créateur de compositions d'agents Valorant par map — projet scolaire/personnel, données via valorant-api.com",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "framer-motion": "^11.2.10",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.24.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "gh-pages": "^6.1.1",
+    "vite": "^5.3.1"
+  }
+}

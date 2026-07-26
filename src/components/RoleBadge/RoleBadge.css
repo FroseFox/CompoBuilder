@@ -1,0 +1,57 @@
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  white-space: nowrap;
+}
+
+.role-badge--sm {
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+}
+
+.role-badge--md {
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  padding: 5px 11px;
+}
+
+.role-badge img {
+  width: 13px;
+  height: 13px;
+  filter: brightness(0) invert(1);
+  opacity: 0.9;
+}
+
+[data-theme='light'] .role-badge img {
+  filter: none;
+  opacity: 0.85;
+}
+
+.role-badge--duelist {
+  color: var(--role-duelist);
+  border-color: color-mix(in srgb, var(--role-duelist) 35%, transparent);
+  background: color-mix(in srgb, var(--role-duelist) 12%, transparent);
+}
+.role-badge--controller {
+  color: var(--role-controller);
+  border-color: color-mix(in srgb, var(--role-controller) 35%, transparent);
+  background: color-mix(in srgb, var(--role-controller) 12%, transparent);
+}
+.role-badge--initiator {
+  color: var(--role-initiator);
+  border-color: color-mix(in srgb, var(--role-initiator) 35%, transparent);
+  background: color-mix(in srgb, var(--role-initiator) 12%, transparent);
+}
+.role-badge--sentinel {
+  color: var(--role-sentinel);
+  border-color: color-mix(in srgb, var(--role-sentinel) 35%, transparent);
+  background: color-mix(in srgb, var(--role-sentinel) 12%, transparent);
+}
