@@ -84,7 +84,7 @@ export default function AuthPanel() {
                   autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@monequipe.com"
+                  placeholder="Nom d'utilisateur"
                 />
               </label>
 
