@@ -14,7 +14,7 @@ export default function AuthPanel() {
 
   if (user) {
     return (
-      <div className="auth-panel__status">
+      <div className="auth-panel auth-panel__status">
         <span className={`auth-panel__badge ${isAdmin ? 'auth-panel__badge--admin' : ''}`}>
           {isAdmin ? '● Admin' : '● Connecté'}
         </span>
@@ -47,7 +47,7 @@ export default function AuthPanel() {
 
   return (
     <>
-      <button className="btn btn-ghost" onClick={() => setOpen(true)}>
+      <button className="btn btn-ghost auth-panel" onClick={() => setOpen(true)}>
         Connexion admin
       </button>
 

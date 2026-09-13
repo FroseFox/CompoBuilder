@@ -93,6 +93,14 @@
     flex-direction: column;
     align-items: stretch;
   }
+  /* En colonne, le flex-basis de 220px défini plus haut (pensé pour une
+     largeur en layout row) s'applique à l'axe principal désormais
+     vertical et transformait la barre de recherche en un pavé vide de
+     220px de haut : on annule le flex-basis pour repasser en hauteur
+     naturelle. */
+  .filter-bar__search {
+    flex: none;
+  }
   .filter-bar__sort {
     width: 100%;
   }

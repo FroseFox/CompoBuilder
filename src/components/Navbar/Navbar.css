@@ -157,20 +157,35 @@
 
 .sidebar__footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding-top: var(--space-4);
   border-top: 1px solid var(--border-subtle);
 }
 
-.sidebar__reset {
-  flex: 1;
+/* Les deux boutons icône (son, thème) tiennent sur une ligne à 240px de
+   large, mais "Réinitialiser tout" et "Connexion admin" / le badge
+   admin n'ont pas la place à côté : ils prennent toute la largeur et
+   passent à la ligne suivante plutôt que de déborder du panneau
+   (c'était le bug avant : le texte était juste tronqué sans ellipse). */
+.sidebar__reset,
+.auth-panel {
+  flex: 1 1 100%;
 }
 
 .sidebar__reset span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.auth-panel.btn {
+  width: 100%;
+}
+
+.auth-panel__status {
+  justify-content: space-between;
 }
 
 .sidebar__hamburger {

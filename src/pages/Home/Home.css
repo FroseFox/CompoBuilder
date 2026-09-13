@@ -6,24 +6,7 @@
   max-width: 780px;
 }
 
-.home__eyebrow {
-  font-family: var(--font-display);
-  font-size: 0.76rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--brand-red);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.home__eyebrow::before {
-  content: '';
-  width: 22px;
-  height: 2px;
-  background: var(--brand-red);
-}
+/* .home__eyebrow vit dans global.css (partagé par toutes les pages). */
 
 .home__title {
   font-size: clamp(2rem, 5vw, 3.1rem);
@@ -76,13 +59,4 @@
   color: var(--text-secondary);
 }
 
-.home__error {
-  padding: var(--space-6);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  max-width: 480px;
-  margin: var(--space-6) auto;
-}
+/* .home__error vit dans global.css (partagé avec MatchCenter). */

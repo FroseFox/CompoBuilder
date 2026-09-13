@@ -57,7 +57,7 @@ export default function Dashboard() {
   return (
     <main className="dashboard container">
       <div className="dashboard__header">
-        <span className="dashboard__eyebrow">Vue d'ensemble</span>
+        <span className="eyebrow dashboard__eyebrow">Vue d'ensemble</span>
         <h1 className="dashboard__title">
           Bonjour{profile?.displayName ? ` ${profile.displayName}` : ''} <span aria-hidden="true">👋</span>
         </h1>

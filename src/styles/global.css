@@ -171,15 +171,89 @@ img {
   box-shadow: var(--shadow-soft);
 }
 
-/* Libellé rouge en majuscules au-dessus d'un titre de section */
+/* Libellé rouge en majuscules au-dessus d'un titre de section, avec le
+   petit tiret rouge devant. Utilisé sur toutes les pages (Home, Editor,
+   Team, Dashboard, MatchCenter, Stats) : vit ici, dans le CSS chargé
+   partout, plutôt que dans le CSS d'une page précise — sinon il
+   n'apparaît complet (avec le tiret) que sur les pages dont le CSS a
+   déjà été chargé dans la session (bug historique : la version
+   incomplète ici doublait celle, complète, de Home.css).
+   .eyebrow est l'alias neutre à utiliser pour tout nouveau texte de ce
+   type, .home__eyebrow reste pris en charge pour le code existant. */
 .eyebrow,
 .home__eyebrow {
   font-family: var(--font-display);
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.76rem;
+  font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--brand-red);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eyebrow::before,
+.home__eyebrow::before {
+  content: '';
+  width: 22px;
+  height: 2px;
+  background: var(--brand-red);
+}
+
+/* Panneau d'erreur centré (API/BDD injoignable), utilisé par Home et
+   MatchCenter. Même raison qu'au-dessus : vit ici pour être toujours
+   stylé, quelle que soit la page visitée en premier dans la session. */
+.home__error {
+  padding: var(--space-6);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 480px;
+  margin: var(--space-6) auto;
+}
+
+/* Formulaire modal générique (ajouter/éditer) : structure + champs,
+   partagé par le formulaire joueur (Team.jsx) et le formulaire de match
+   (MatchCenter.jsx). Les couleurs d'identification (player-form__colors,
+   player-form__swatch) restent propres à Team et vivent dans Team.css. */
+.player-form {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.player-form h3 {
+  font-size: 1.05rem;
+}
+
+.player-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.player-form__field input,
+.player-form__field select {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.player-form__field input:focus,
+.player-form__field select:focus {
+  outline: none;
+  border-color: var(--brand-red);
 }
 
 .btn {
@@ -250,3 +324,66 @@ img {
   padding: 10px;
   border-radius: var(--radius-sm);
 }
+
+/* ---------- Cartes stat ----------
+   Partagées par Dashboard, Team et Stats (le total, la répartition par
+   rôle, les indicateurs de forme...). Vivent ici plutôt que dans le CSS
+   d'une page précise : avec le découpage par page (React.lazy), le CSS
+   d'une page n'est chargé que si on visite cette page — les réutiliser
+   depuis un autre fichier de page les laissait sans style tant que le
+   Dashboard n'avait pas été ouvert au moins une fois dans la session. */
+.dashboard__stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.stat-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-solid);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.stat-card__icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.stat-card__value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2rem;
+  color: var(--text-primary);
+}
+
+.stat-card__label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.stat-card--validated .stat-card__icon { color: var(--role-sentinel); background: rgba(61, 220, 151, 0.12); }
+.stat-card--validated .stat-card__value { color: var(--role-sentinel); }
+.stat-card--testing .stat-card__icon { color: var(--role-initiator); background: rgba(255, 181, 76, 0.12); }
+.stat-card--testing .stat-card__value { color: var(--role-initiator); }
+.stat-card--needs_work .stat-card__icon { color: var(--role-duelist); background: var(--brand-red-soft); }
+.stat-card--needs_work .stat-card__value { color: var(--role-duelist); }
+.stat-card--todo .stat-card__value { color: var(--text-secondary); }
+.stat-card--empty .stat-card__value { color: var(--text-tertiary); }

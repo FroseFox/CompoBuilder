@@ -5,14 +5,9 @@
   gap: var(--space-5);
 }
 
-.dashboard__eyebrow {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--brand-red);
-}
+/* .dashboard__eyebrow utilise désormais le style partagé .eyebrow
+   (global.css), pour rester cohérent avec le tiret rouge affiché sur
+   Home/Team/Editor/MatchCenter/Stats. */
 
 .dashboard__header p {
   margin-top: 6px;
@@ -101,62 +96,13 @@
   }
 }
 
-/* ---------- Cartes stat ---------- */
-.dashboard__stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--space-3);
-}
-
-.stat-card {
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-panel-solid);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
-    box-shadow var(--dur-fast) var(--ease-out);
-}
-
-.stat-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-soft);
-}
-
-.stat-card__icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  background: var(--bg-hover);
-  color: var(--text-secondary);
-}
-
-.stat-card__value {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 2rem;
-  color: var(--text-primary);
-}
-
-.stat-card__label {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-}
-
-.stat-card--validated .stat-card__icon { color: var(--role-sentinel); background: rgba(61, 220, 151, 0.12); }
-.stat-card--validated .stat-card__value { color: var(--role-sentinel); }
-.stat-card--testing .stat-card__icon { color: var(--role-initiator); background: rgba(255, 181, 76, 0.12); }
-.stat-card--testing .stat-card__value { color: var(--role-initiator); }
-.stat-card--needs_work .stat-card__icon { color: var(--role-duelist); background: var(--brand-red-soft); }
-.stat-card--needs_work .stat-card__value { color: var(--role-duelist); }
-.stat-card--todo .stat-card__value { color: var(--text-secondary); }
-.stat-card--empty .stat-card__value { color: var(--text-tertiary); }
+/* ---------- Cartes stat ----------
+   Déplacées dans global.css : .stat-card et .dashboard__stat-grid sont
+   aussi utilisées par Team.jsx et Stats.jsx. Un composant chargé par
+   React.lazy n'embarque que son propre fichier CSS — en arrivant
+   directement sur /team ou /stats sans être passé par /dashboard, ces
+   classes n'étaient jamais chargées et s'affichaient sans aucun style
+   (texte brut collé, sans cartes ni espacement). */
 
 /* ---------- Listes de maps ---------- */
 .dashboard__lists {

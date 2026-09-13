@@ -108,42 +108,9 @@
 
 /* ---------- Formulaire joueur ---------- */
 
-.player-form {
-  width: 100%;
-  max-width: 420px;
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.player-form h3 {
-  font-size: 1.05rem;
-}
-
-.player-form__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.player-form__field input,
-.player-form__field select {
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.player-form__field input:focus,
-.player-form__field select:focus {
-  outline: none;
-  border-color: var(--brand-red);
-}
+/* .player-form et .player-form__field vivent dans global.css : ce
+   formulaire (structure + champs) est partagé avec le formulaire de
+   match de MatchCenter.jsx, qui n'importe pas ce fichier. */
 
 .player-form__colors {
   display: flex;
