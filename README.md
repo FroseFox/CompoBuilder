@@ -134,6 +134,26 @@ Security** définies dans `supabase/schema.sql` : lecture ouverte à tous,
 écriture réservée aux comptes marqués administrateur. Voir
 GUIDE_SUPABASE.md, section "Pourquoi c'est sans danger", pour le détail.
 
+Compléments :
+- **Content-Security-Policy** : injectée automatiquement dans le HTML du
+  build de production (voir `vite.config.js`), jamais en développement.
+  Elle limite les scripts/styles/images/connexions aux origines
+  strictement nécessaires (l'app elle-même, Google Fonts, Supabase,
+  valorant-api.com). GitHub Pages ne permettant pas d'envoyer de vrais
+  en-têtes HTTP, elle passe par une balise `<meta>` — ce qui ne couvre pas
+  la protection anti-clickjacking (`frame-ancestors`, ignoré par les
+  navigateurs dans une balise meta). Pour ça, il faudrait héberger sur un
+  service qui permet de définir des en-têtes (Cloudflare Pages, Netlify…).
+- **Dépendances** : `npm audit` signale une alerte modérée sur
+  `react-router-dom` (redirection externe via une navigation forgée), sans
+  correctif disponible en version 6.x — seule la version 7 (changement
+  majeur) la corrige entièrement. Ce n'est exploitable que si un chemin de
+  navigation est construit à partir d'un contenu non fiable (saisie libre
+  d'un utilisateur, paramètre d'URL…) ; ce n'est le cas nulle part dans
+  cette app (les navigations utilisent uniquement des UUID de maps/matchs
+  contrôlés par l'admin). Risque jugé négligeable ici, mais à garder en
+  tête si le routing évolue — voir `npm audit` pour le détail.
+
 ## Fonctionnalités
 
 **Page d'accueil**
@@ -148,7 +168,7 @@ GUIDE_SUPABASE.md, section "Pourquoi c'est sans danger", pour le détail.
   renommer, dupliquer, supprimer, définir comme principale)
 - 5 emplacements par composition avec sélection d'agent (recherche, filtre
   par rôle, tri), glisser-déposer pour réorganiser, assignation d'un joueur
-- Statut de préparation (Validée / En test / À retravailler)
+- Statut de préparation (À faire / En test / Validée / À retravailler)
 - Notes de stratégie en sauvegarde automatique
 - Visiteurs non-admin : tout est visible, rien n'est modifiable
 
@@ -160,6 +180,16 @@ GUIDE_SUPABASE.md, section "Pourquoi c'est sans danger", pour le détail.
 - Nombre total de maps, de compositions créées
 - Répartition par statut, barre de progression globale
 - Listes rapides des maps à retravailler, en test, ou sans composition
+
+**Match Center**
+- Historique des matchs joués : adversaire, map, composition utilisée,
+  score, date, notes (admin : créer/modifier/supprimer)
+- Résultat (victoire/défaite/nul) calculé automatiquement depuis le score
+
+**Statistiques**
+- Bilan global (victoires/défaites), forme récente
+- Performance par map, par composition et par adversaire
+- Statistiques par joueur, déduites des compositions utilisées en match
 
 **Recherche globale (⌘K)**
 - Recherche unifiée sur les maps, les joueurs et les agents
@@ -177,6 +207,18 @@ Sur demande, l'export JSON, l'import JSON et le bouton « copier la
 composition » ont été supprimés pour recentrer l'outil sur l'usage
 quotidien de l'équipe.
 
+Nettoyage additionnel : une ancienne page de détail de match
+(`MatchDetail`, avec gestion multi-maps et format BO1/BO3/BO5) a été
+supprimée — elle datait d'avant la simplification du Match Center
+(migration 003) et n'était plus reliée à aucune route ni à aucune donnée
+existante. Un premier système de suivi de matchs plus ancien
+(`MatchResultsContext`), jamais branché à l'app, a été supprimé pour la
+même raison. Les colonnes `opponent_logo_url` et `position` ajoutées par
+`migration_004` ne sont donc plus utilisées par aucune page ; elles n'ont
+pas été retirées de la base (aucune migration destructive n'a été
+exécutée automatiquement) mais peuvent être ignorées ou nettoyées
+manuellement si besoin.
+
 ## Notes sur les APIs
 
 - `valorant-api.com` : API publique, gratuite, sans authentification, pour
@@ -189,8 +231,22 @@ quotidien de l'équipe.
 
 - Les listes dérivées (résumés de maps, statistiques du dashboard) sont
   calculées avec `useMemo`.
-- Les notes utilisent une sauvegarde différée (debounce ~600 ms).
+- Les notes utilisent une sauvegarde différée (debounce ~7600 ms).
 - Les tables `maps`/`agents` ne sont resynchronisées vers Supabase qu'une
   fois par session admin (pas à chaque rendu).
 - Les images bénéficient du chargement différé (`loading="lazy"`) et du
   cache HTTP natif du navigateur.
+- Chaque page est chargée à la demande (`React.lazy`) plutôt que dans un
+  seul gros bundle : le chargement initial ne télécharge que la page
+  demandée. Les dépendances lourdes (React, Framer Motion, Supabase) sont
+  dans des chunks séparés, mis en cache indépendamment du code de l'app.
+
+## Accessibilité
+
+- Focus clavier toujours visible (`:focus-visible`), jamais masqué.
+- Le réglage système « Réduire les animations » est respecté partout,
+  y compris pour les animations pilotées en JS (Framer Motion, via
+  `MotionConfig reducedMotion="user"` dans `App.jsx`) et pas seulement
+  pour les transitions CSS.
+- Toute URL non reconnue redirige vers l'accueil au lieu d'afficher une
+  page blanche.
