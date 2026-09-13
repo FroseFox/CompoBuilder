@@ -8,6 +8,12 @@ import { getCompsForMap } from '../../utils/compositions'
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
 import './GlobalSearch.css'
 
+const panelVariants = {
+  hidden: { opacity: 0, y: -12, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 34 } },
+  exit: { opacity: 0, y: -8, scale: 0.99, transition: { duration: 0.14, ease: [0.4, 0, 1, 1] } },
+}
+
 export default function GlobalSearch({ open, onClose }) {
   const [query, setQuery] = useState('')
   const { maps, agents } = useData()
@@ -74,10 +80,10 @@ export default function GlobalSearch({ open, onClose }) {
             role="dialog"
             aria-modal="true"
             aria-label="Recherche globale"
-            initial={{ opacity: 0, y: -12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.99 }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={panelVariants}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="gsearch__input">
