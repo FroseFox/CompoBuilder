@@ -77,14 +77,14 @@ export default function AuthPanel() {
               </p>
 
               <label className="player-form__field">
-                <span>Email</span>
+                <span>Nom d'utilisateur</span>
                 <input
                   type="email"
                   required
                   autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
+                  placeholder="Nom d'utilisateur"
                 />
               </label>
 
