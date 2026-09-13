@@ -264,7 +264,7 @@ manuellement si besoin.
 
 - Les listes dérivées (résumés de maps, statistiques du dashboard) sont
   calculées avec `useMemo`.
-- Les notes utilisent une sauvegarde différée (debounce ~600 ms).
+- Les notes utilisent une sauvegarde différée (debounce ~7600 ms).
 - Les tables `maps`/`agents` ne sont resynchronisées vers Supabase qu'une
   fois par session admin (pas à chaque rendu).
 - Les images bénéficient du chargement différé (`loading="lazy"`) et du
