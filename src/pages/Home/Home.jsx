@@ -65,8 +65,7 @@ export default function Home() {
         </h1>
         <p className="home__subtitle">
           Retrouvez en un coup d'œil vos compositions par map, leur statut et
-          les joueurs assignés — le tout sauvegardé automatiquement et partagé
-          en temps réel avec toute l'équipe.
+          les joueurs assignés — le tout sauvegardé automatiquement, en local.
         </p>
         {status === 'ready' && maps.length > 0 && (
           <div className="home__progress">
