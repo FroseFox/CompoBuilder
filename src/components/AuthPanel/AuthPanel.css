@@ -41,9 +41,4 @@
     align-items: flex-end;
     gap: 6px;
   }
- 
 }
-.confirm-scrim {
-  transform: translateY(160px);
-}
-

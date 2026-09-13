@@ -64,9 +64,8 @@ export default function AuthPanel() {
             <motion.form
               className="auth-panel__form glass-panel"
               initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.98 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 32 } }}
+              exit={{ opacity: 0, y: 10, scale: 0.98, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } }}
               onClick={(e) => e.stopPropagation()}
               onSubmit={handleSubmit}
             >
@@ -77,14 +76,14 @@ export default function AuthPanel() {
               </p>
 
               <label className="player-form__field">
-                <span>Nom d'utilisateur</span>
+                <span>Email</span>
                 <input
                   type="email"
                   required
                   autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Nom d'utilisateur"
+                  placeholder="admin@monequipe.com"
                 />
               </label>
 
