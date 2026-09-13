@@ -11,15 +11,17 @@
 export const THEME_KEY = 'vct-comp-builder:theme'
 
 export const STATUS = {
-  VALIDATED: 'validated',
+  TODO: 'todo',
   TESTING: 'testing',
   NEEDS_WORK: 'needs_work',
+  VALIDATED: 'validated',
 }
 
 export const STATUS_META = {
-  [STATUS.VALIDATED]: { label: 'Validée', emoji: '🟢', color: '#3ddc97' },
+  [STATUS.TODO]: { label: 'À faire', emoji: '⚪', color: '#8f9bb3' },
   [STATUS.TESTING]: { label: 'En test', emoji: '🟡', color: '#ffb54c' },
   [STATUS.NEEDS_WORK]: { label: 'À retravailler', emoji: '🔴', color: '#ff5f6d' },
+  [STATUS.VALIDATED]: { label: 'Validée', emoji: '🟢', color: '#3ddc97' },
 }
 
 export const PLAYER_COLORS = [
@@ -36,7 +38,7 @@ export function defaultCompositionDraft(name, { isMain = false } = {}) {
   return {
     name: name || 'Nouvelle composition',
     slots: emptySlots(),
-    status: STATUS.TESTING,
+    status: STATUS.TODO,
     notes: '',
     isMain,
   }
