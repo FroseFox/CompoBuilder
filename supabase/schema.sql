@@ -120,29 +120,51 @@ create policy "Lecture publique compositions" on public.compositions for select 
 
 -- Un utilisateur connecté peut lire sa propre ligne de profil (utilisé
 -- par l'app pour savoir si la personne connectée est admin).
+-- (select auth.uid()) plutôt que auth.uid() : Postgres l'évalue une
+-- seule fois par requête au lieu d'une fois par ligne (recommandation
+-- Supabase pour les policies RLS à l'échelle).
 drop policy if exists "Lecture propre profil" on public.profiles;
-create policy "Lecture propre profil" on public.profiles for select using (auth.uid() = id);
+create policy "Lecture propre profil" on public.profiles for select using ((select auth.uid()) = id);
 
--- Écriture réservée aux comptes administrateurs
+-- Écriture réservée aux comptes administrateurs.
+-- Une policy par action (insert/update/delete) plutôt qu'une seule
+-- "for all" : une policy "for all" s'applique aussi au SELECT et ferait
+-- doublon avec la policy de lecture publique dédiée ci-dessus.
 drop policy if exists "Ecriture admin maps" on public.maps;
-create policy "Ecriture admin maps" on public.maps for all
-  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+create policy "Ecriture admin maps" on public.maps for insert
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Modification admin maps" on public.maps for update
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Suppression admin maps" on public.maps for delete
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 drop policy if exists "Ecriture admin agents" on public.agents;
-create policy "Ecriture admin agents" on public.agents for all
-  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+create policy "Ecriture admin agents" on public.agents for insert
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Modification admin agents" on public.agents for update
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Suppression admin agents" on public.agents for delete
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 drop policy if exists "Ecriture admin players" on public.players;
-create policy "Ecriture admin players" on public.players for all
-  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+create policy "Ecriture admin players" on public.players for insert
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Modification admin players" on public.players for update
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Suppression admin players" on public.players for delete
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 drop policy if exists "Ecriture admin compositions" on public.compositions;
-create policy "Ecriture admin compositions" on public.compositions for all
-  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+create policy "Ecriture admin compositions" on public.compositions for insert
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Modification admin compositions" on public.compositions for update
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Suppression admin compositions" on public.compositions for delete
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 -- ---------- Match Center (historique des matchs joués) ----------
 
@@ -165,9 +187,13 @@ drop policy if exists "Lecture publique matches" on public.matches;
 create policy "Lecture publique matches" on public.matches for select using (true);
 
 drop policy if exists "Ecriture admin matches" on public.matches;
-create policy "Ecriture admin matches" on public.matches for all
-  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+create policy "Ecriture admin matches" on public.matches for insert
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Modification admin matches" on public.matches for update
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Suppression admin matches" on public.matches for delete
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 -- ============================================================
 -- Temps réel (synchronisation entre tous les membres connectés)

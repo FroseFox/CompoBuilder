@@ -46,13 +46,46 @@ npm run preview
 
 ## Déploiement sur GitHub Pages
 
+Deux façons de déployer :
+
+### Automatique (recommandé) — GitHub Actions
+
+Un workflow (`.github/workflows/deploy.yml`) build et publie automatiquement
+le site à chaque `git push` sur `main`. À configurer une seule fois :
+
+1. Sur GitHub : **Settings > Pages > Build and deployment > Source**,
+   choisir **GitHub Actions** (au lieu de "Deploy from a branch").
+2. Toujours sur GitHub : **Settings > Secrets and variables > Actions >
+   New repository secret**, créer `VITE_SUPABASE_URL` et
+   `VITE_SUPABASE_ANON_KEY` avec les mêmes valeurs que dans votre `.env`
+   local (voir GUIDE_SUPABASE.md, étape 3).
+3. `git push` sur `main` : direction l'onglet **Actions** du dépôt pour
+   suivre le déploiement (1-2 minutes).
+
+Avec cette méthode, plus besoin d'avoir `.env` sur la machine qui déploie —
+seul le dépôt GitHub compte.
+
+### Manuel — depuis votre machine
+
 ```bash
 npm run deploy
 ```
 
 Le fichier `.env` doit être présent sur la machine qui exécute cette
 commande (il n'est jamais poussé sur GitHub — voir `.gitignore`). Détails
-dans GUIDE_SUPABASE.md, étape 8.
+dans GUIDE_SUPABASE.md, étape 8. Publie directement sur la branche
+`gh-pages` sans passer par GitHub Actions — pratique en dépannage, mais à
+éviter en usage courant si le déploiement automatique est configuré (les
+deux méthodes ne se synchronisent pas entre elles).
+
+## Qualité de code
+
+```bash
+npm run lint
+```
+
+Vérifie le code avec ESLint (erreurs React/hooks courantes). Aucune
+correction automatique n'est appliquée ; à lancer avant de commit.
 
 ## Comptes et droits
 

@@ -1,0 +1,54 @@
+name: Déployer sur GitHub Pages
+
+# Se déclenche à chaque push sur main, et peut aussi être lancé
+# manuellement depuis l'onglet "Actions" de GitHub ("Run workflow").
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Les deux secrets doivent être créés une seule fois dans :
+      # Repo GitHub > Settings > Secrets and variables > Actions > New
+      # repository secret. Mêmes valeurs que dans le .env local (voir
+      # GUIDE_SUPABASE.md, étape 3 : Project Settings > API).
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

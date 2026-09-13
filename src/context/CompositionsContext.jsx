@@ -85,14 +85,17 @@ export function CompositionsProvider({ children }) {
     }
   }, [mergeComp, removeCompFromState])
 
-  const handleError = (err, fallbackMessage) => {
-    console.error(err)
-    const message =
-      err?.code === '42501' || /row-level security/i.test(err?.message || '')
-        ? "Action refusée : vous devez être connecté en tant qu'administrateur."
-        : fallbackMessage
-    pushToast(message, 'error')
-  }
+  const handleError = useCallback(
+    (err, fallbackMessage) => {
+      console.error(err)
+      const message =
+        err?.code === '42501' || /row-level security/i.test(err?.message || '')
+          ? "Action refusée : vous devez être connecté en tant qu'administrateur."
+          : fallbackMessage
+      pushToast(message, 'error')
+    },
+    [pushToast]
+  )
 
   const createComposition = useCallback(
     async (mapUuid, name) => {
@@ -108,7 +111,7 @@ export function CompositionsProvider({ children }) {
         return null
       }
     },
-    [compositionsByMap, mergeComp]
+    [compositionsByMap, mergeComp, handleError]
   )
 
   const duplicateComposition = useCallback(
@@ -131,7 +134,7 @@ export function CompositionsProvider({ children }) {
         return null
       }
     },
-    [compositionsByMap, mergeComp]
+    [compositionsByMap, mergeComp, handleError]
   )
 
   const deleteComposition = useCallback(
@@ -154,7 +157,7 @@ export function CompositionsProvider({ children }) {
         handleError(err, 'Impossible de supprimer la composition.')
       }
     },
-    [compositionsByMap, mergeComp, removeCompFromState]
+    [compositionsByMap, mergeComp, removeCompFromState, handleError]
   )
 
   const renameComposition = useCallback(
@@ -166,7 +169,7 @@ export function CompositionsProvider({ children }) {
         handleError(err, 'Impossible de renommer la composition.')
       }
     },
-    [mergeComp]
+    [mergeComp, handleError]
   )
 
   const setMain = useCallback(
@@ -181,7 +184,7 @@ export function CompositionsProvider({ children }) {
         handleError(err, 'Impossible de définir la composition principale.')
       }
     },
-    [compositionsByMap, mergeComp]
+    [compositionsByMap, mergeComp, handleError]
   )
 
   const setStatus_ = useCallback(
@@ -193,7 +196,7 @@ export function CompositionsProvider({ children }) {
         handleError(err, 'Impossible de changer le statut.')
       }
     },
-    [mergeComp]
+    [mergeComp, handleError]
   )
 
   const setNotes = useCallback(
@@ -205,7 +208,7 @@ export function CompositionsProvider({ children }) {
         handleError(err, 'Impossible de sauvegarder les notes.')
       }
     },
-    [mergeComp]
+    [mergeComp, handleError]
   )
 
   const patchSlots = useCallback(
@@ -220,7 +223,7 @@ export function CompositionsProvider({ children }) {
         handleError(err, "Impossible de mettre à jour la composition.")
       }
     },
-    [compositionsByMap, mergeComp]
+    [compositionsByMap, mergeComp, handleError]
   )
 
   const setSlotAgent = useCallback(
@@ -275,7 +278,7 @@ export function CompositionsProvider({ children }) {
         })
       ).catch((err) => handleError(err, 'Impossible de désassigner ce joueur partout.'))
     },
-    [compositionsByMap, mergeComp]
+    [compositionsByMap, mergeComp, handleError]
   )
 
   const resetAll = useCallback(async () => {
@@ -285,7 +288,7 @@ export function CompositionsProvider({ children }) {
     } catch (err) {
       handleError(err, 'Impossible de réinitialiser les compositions.')
     }
-  }, [])
+  }, [handleError])
 
   const value = useMemo(
     () => ({

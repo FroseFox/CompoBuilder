@@ -68,14 +68,17 @@ export function PlayersProvider({ children }) {
     }
   }, [mergePlayer, removePlayerFromState])
 
-  const handleError = (err, fallbackMessage) => {
-    console.error(err)
-    const message =
-      err?.code === '42501' || /row-level security/i.test(err?.message || '')
-        ? "Action refusée : vous devez être connecté en tant qu'administrateur."
-        : fallbackMessage
-    pushToast(message, 'error')
-  }
+  const handleError = useCallback(
+    (err, fallbackMessage) => {
+      console.error(err)
+      const message =
+        err?.code === '42501' || /row-level security/i.test(err?.message || '')
+          ? "Action refusée : vous devez être connecté en tant qu'administrateur."
+          : fallbackMessage
+      pushToast(message, 'error')
+    },
+    [pushToast]
+  )
 
   const addPlayer = useCallback(async (data) => {
     try {
@@ -86,7 +89,7 @@ export function PlayersProvider({ children }) {
       handleError(err, "Impossible d'ajouter ce joueur.")
       return null
     }
-  }, [mergePlayer])
+  }, [mergePlayer, handleError])
 
   const updatePlayer = useCallback(
     async (id, patch) => {
@@ -99,7 +102,7 @@ export function PlayersProvider({ children }) {
         handleError(err, 'Impossible de mettre à jour ce joueur.')
       }
     },
-    [players, mergePlayer]
+    [players, mergePlayer, handleError]
   )
 
   const deletePlayer = useCallback(
@@ -111,7 +114,7 @@ export function PlayersProvider({ children }) {
         handleError(err, 'Impossible de supprimer ce joueur.')
       }
     },
-    [removePlayerFromState]
+    [removePlayerFromState, handleError]
   )
 
   return (

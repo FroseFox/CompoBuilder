@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from './services/supabaseClient'
 import Navbar from './components/Navbar/Navbar'
 import PageTransition from './components/PageTransition/PageTransition'
 import Loader from './components/Loader/Loader'
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 
 // Chaque page dans son propre chunk : le premier chargement ne télécharge
 // que la page demandée, pas les 6 à la fois (le bundle faisait ~590 Ko
@@ -97,22 +98,24 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <SoundProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <DataProvider>
-              <PlayersProvider>
-                <CompositionsProvider>
-                  <MatchesProvider>
-                    <AppShell />
-                  </MatchesProvider>
-                </CompositionsProvider>
-              </PlayersProvider>
-            </DataProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </SoundProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <SoundProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <DataProvider>
+                <PlayersProvider>
+                  <CompositionsProvider>
+                    <MatchesProvider>
+                      <AppShell />
+                    </MatchesProvider>
+                  </CompositionsProvider>
+                </PlayersProvider>
+              </DataProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </SoundProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }

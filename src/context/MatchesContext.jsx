@@ -57,14 +57,17 @@ export function MatchesProvider({ children }) {
     }
   }, [mergeMatch, removeMatchFromState])
 
-  const handleError = (err, fallbackMessage) => {
-    console.error(err)
-    const message =
-      err?.code === '42501' || /row-level security/i.test(err?.message || '')
-        ? "Action refusée : vous devez être connecté en tant qu'administrateur."
-        : fallbackMessage
-    pushToast(message, 'error')
-  }
+  const handleError = useCallback(
+    (err, fallbackMessage) => {
+      console.error(err)
+      const message =
+        err?.code === '42501' || /row-level security/i.test(err?.message || '')
+          ? "Action refusée : vous devez être connecté en tant qu'administrateur."
+          : fallbackMessage
+      pushToast(message, 'error')
+    },
+    [pushToast]
+  )
 
   const createMatch = useCallback(
     async (draft) => {
@@ -77,7 +80,7 @@ export function MatchesProvider({ children }) {
         return null
       }
     },
-    [mergeMatch]
+    [mergeMatch, handleError]
   )
 
   const updateMatch = useCallback(
@@ -89,7 +92,7 @@ export function MatchesProvider({ children }) {
         handleError(err, 'Impossible de mettre à jour ce match.')
       }
     },
-    [mergeMatch]
+    [mergeMatch, handleError]
   )
 
   const deleteMatch = useCallback(
@@ -101,7 +104,7 @@ export function MatchesProvider({ children }) {
         handleError(err, 'Impossible de supprimer ce match.')
       }
     },
-    [removeMatchFromState]
+    [removeMatchFromState, handleError]
   )
 
   const value = useMemo(
