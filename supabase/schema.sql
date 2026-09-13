@@ -60,6 +60,28 @@ create table if not exists public.compositions (
 
 create index if not exists compositions_map_uuid_idx on public.compositions (map_uuid);
 
+-- ---------- Matches (Centre de match / Stats) ----------
+-- Utilisée par la fonctionnalité "Match Center" / "Stats" déployée sur le
+-- site (gh-pages), historiquement absente du code source versionné.
+
+create table if not exists public.matches (
+  id uuid primary key default gen_random_uuid(),
+  opponent_name text not null,
+  map_uuid text not null references public.maps(uuid),
+  composition_id uuid references public.compositions(id) on delete set null,
+  our_score integer not null default 0,
+  opponent_score integer not null default 0,
+  match_date date,
+  notes text not null default '',
+  position integer not null default 0,
+  opponent_logo_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists matches_map_uuid_idx on public.matches (map_uuid);
+create index if not exists matches_composition_id_idx on public.matches (composition_id);
+
 -- ---------- Profils utilisateurs (admin ou non) ----------
 -- Une ligne est créée automatiquement pour chaque nouveau compte
 -- (voir le trigger plus bas). Par défaut is_admin = false : c'est
@@ -104,6 +126,7 @@ alter table public.maps enable row level security;
 alter table public.agents enable row level security;
 alter table public.players enable row level security;
 alter table public.compositions enable row level security;
+alter table public.matches enable row level security;
 alter table public.profiles enable row level security;
 
 -- Lecture publique (y compris sans être connecté)
@@ -118,6 +141,9 @@ create policy "Lecture publique players" on public.players for select using (tru
 
 drop policy if exists "Lecture publique compositions" on public.compositions;
 create policy "Lecture publique compositions" on public.compositions for select using (true);
+
+drop policy if exists "Lecture publique matches" on public.matches;
+create policy "Lecture publique matches" on public.matches for select using (true);
 
 -- Un utilisateur connecté peut lire sa propre ligne de profil (utilisé
 -- par l'app pour savoir si la personne connectée est admin).
@@ -163,6 +189,15 @@ create policy "Ecriture admin compositions update" on public.compositions for up
   using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
   with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 create policy "Ecriture admin compositions delete" on public.compositions for delete
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+
+drop policy if exists "Ecriture admin matches" on public.matches;
+create policy "Ecriture admin matches insert" on public.matches for insert
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Ecriture admin matches update" on public.matches for update
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Ecriture admin matches delete" on public.matches for delete
   using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 -- ============================================================
