@@ -46,7 +46,6 @@
 .stat-card--validated .stat-card__value { color: var(--role-sentinel); }
 .stat-card--testing .stat-card__value { color: var(--role-initiator); }
 .stat-card--needs_work .stat-card__value { color: var(--role-duelist); }
-.stat-card--todo .stat-card__value { color: var(--text-secondary); }
 .stat-card--empty .stat-card__value { color: var(--text-tertiary); }
 
 .dashboard__progress-section {
