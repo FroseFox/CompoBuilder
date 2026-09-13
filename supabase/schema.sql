@@ -60,6 +60,7 @@ create table if not exists public.compositions (
 
 create index if not exists compositions_map_uuid_idx on public.compositions (map_uuid);
 
+
 -- ---------- Matches (Centre de match / Stats) ----------
 -- Utilisée par la fonctionnalité "Match Center" / "Stats" déployée sur le
 -- site (gh-pages), historiquement absente du code source versionné.
@@ -94,20 +95,13 @@ create table if not exists public.profiles (
 );
 
 create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
+returns trigger as $$
 begin
   insert into public.profiles (id, is_admin) values (new.id, false)
   on conflict (id) do nothing;
   return new;
 end;
-$$;
-
--- Fonction interne au trigger : personne n'a besoin de l'appeler directement.
-revoke execute on function public.handle_new_user() from public, anon, authenticated;
+$$ language plpgsql security definer;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -148,57 +142,33 @@ create policy "Lecture publique matches" on public.matches for select using (tru
 -- Un utilisateur connecté peut lire sa propre ligne de profil (utilisé
 -- par l'app pour savoir si la personne connectée est admin).
 drop policy if exists "Lecture propre profil" on public.profiles;
-create policy "Lecture propre profil" on public.profiles for select using ((select auth.uid()) = id);
+create policy "Lecture propre profil" on public.profiles for select using (auth.uid() = id);
 
--- Écriture réservée aux comptes administrateurs.
--- Séparée en insert/update/delete (plutôt que "for all") pour ne pas se
--- superposer à la policy de lecture publique ci-dessus sur les select ;
--- (select auth.uid()) plutôt que auth.uid() pour n'être évalué qu'une
--- fois par requête plutôt qu'une fois par ligne (recommandation Supabase).
+-- Écriture réservée aux comptes administrateurs
 drop policy if exists "Ecriture admin maps" on public.maps;
-create policy "Ecriture admin maps insert" on public.maps for insert
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin maps update" on public.maps for update
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin maps delete" on public.maps for delete
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Ecriture admin maps" on public.maps for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
 
 drop policy if exists "Ecriture admin agents" on public.agents;
-create policy "Ecriture admin agents insert" on public.agents for insert
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin agents update" on public.agents for update
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin agents delete" on public.agents for delete
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Ecriture admin agents" on public.agents for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
 
 drop policy if exists "Ecriture admin players" on public.players;
-create policy "Ecriture admin players insert" on public.players for insert
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin players update" on public.players for update
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin players delete" on public.players for delete
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Ecriture admin players" on public.players for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
 
 drop policy if exists "Ecriture admin compositions" on public.compositions;
-create policy "Ecriture admin compositions insert" on public.compositions for insert
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin compositions update" on public.compositions for update
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin compositions delete" on public.compositions for delete
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Ecriture admin compositions" on public.compositions for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
 
 drop policy if exists "Ecriture admin matches" on public.matches;
-create policy "Ecriture admin matches insert" on public.matches for insert
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin matches update" on public.matches for update
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
-create policy "Ecriture admin matches delete" on public.matches for delete
-  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Ecriture admin matches" on public.matches for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
 
 -- ============================================================
 -- Temps réel (synchronisation entre tous les membres connectés)
