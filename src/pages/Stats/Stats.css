@@ -1,0 +1,233 @@
+.stats-page {
+  padding: var(--space-7) 0 var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.stats-page__header p {
+  margin-top: 6px;
+  max-width: 560px;
+}
+
+.stats-page__title {
+  font-size: clamp(1.7rem, 3.4vw, 2.2rem);
+  margin: 8px 0 4px;
+}
+
+.stats-page__empty {
+  padding: var(--space-6);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.stats-section .editor__section-header {
+  margin-bottom: var(--space-4);
+}
+
+.stats-page__overview-card--win .stat-card__value {
+  color: var(--role-sentinel);
+}
+.stats-page__overview-card--win .stat-card__icon {
+  color: var(--role-sentinel);
+  background: rgba(61, 220, 151, 0.12);
+}
+.stats-page__overview-card--loss .stat-card__value {
+  color: var(--role-duelist);
+}
+.stats-page__overview-card--loss .stat-card__icon {
+  color: var(--role-duelist);
+  background: var(--brand-red-soft);
+}
+.stats-page__overview-card--rate .stat-card__value {
+  color: var(--brand-red);
+}
+.stats-page__overview-card--rate .stat-card__icon {
+  color: var(--brand-red);
+  background: var(--brand-red-soft);
+}
+
+/* ---------- Forme récente ---------- */
+
+.stats-page__form-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stats-form-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #0b1119;
+  background: var(--result-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--result-color) 25%, transparent);
+}
+
+/* ---------- Lignes de stats (map / composition / adversaire) ---------- */
+
+.stats-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(120px, 1fr) 48px;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.stats-row:not(.stats-row--nested):hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+.stats-row__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.stats-row__label span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-row__caption {
+  color: var(--text-tertiary);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.stats-row__thumb {
+  width: 34px;
+  height: 24px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.stats-row__record {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.stats-row__bar {
+  min-width: 100px;
+}
+
+.stats-row__percent {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: right;
+  color: var(--text-primary);
+}
+
+/* ---------- Regroupement par map (meilleure composition) ---------- */
+
+.stats-page__map-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.stats-map-group {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stats-map-group__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stats-map-group__header h3 {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.stats-map-group__thumb {
+  width: 40px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.stats-map-group__count {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.stats-row--nested {
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  border: 1px solid transparent;
+}
+
+.stats-row--best {
+  border-color: color-mix(in srgb, var(--role-sentinel) 40%, transparent);
+  background: color-mix(in srgb, var(--role-sentinel) 10%, transparent);
+}
+
+.stats-row__best-badge {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--role-sentinel);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .stats-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'label percent'
+      'bar bar'
+      'record record';
+    row-gap: 8px;
+  }
+  .stats-row__label {
+    grid-area: label;
+  }
+  .stats-row__percent {
+    grid-area: percent;
+  }
+  .stats-row__bar {
+    grid-area: bar;
+    min-width: 0;
+  }
+  .stats-row__record {
+    grid-area: record;
+  }
+  .stats-map-group__count {
+    margin-left: 0;
+  }
+}

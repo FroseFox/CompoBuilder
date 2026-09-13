@@ -62,7 +62,6 @@
 
 .agent-slot--empty:hover {
   border-color: var(--brand-red);
-  transform: translateY(-3px);
 }
 
 .agent-slot--empty:hover .agent-slot__add {
@@ -85,28 +84,26 @@
 
 .agent-slot--filled:hover {
   border-color: var(--border-strong);
-  transform: translateY(-3px);
   box-shadow: var(--shadow-soft);
 }
 
 .agent-slot__portrait-btn {
+  position: relative;
   width: 100%;
   height: 100%;
   border: none;
   padding: 0;
+  overflow: hidden;
   background: linear-gradient(180deg, var(--bg-hover) 0%, transparent 40%);
 }
 
 .agent-slot__portrait {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: top center;
-  transition: transform var(--dur-med) var(--ease-out);
-}
-
-.agent-slot--filled:hover .agent-slot__portrait {
-  transform: scale(1.05);
 }
 
 .agent-slot__info {

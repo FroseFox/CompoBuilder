@@ -56,6 +56,21 @@ export async function upsertAgents(agents) {
   if (error) throw error
 }
 
+function rowToMatch(row) {
+  return {
+    id: row.id,
+    opponentName: row.opponent_name,
+    mapUuid: row.map_uuid,
+    compositionId: row.composition_id,
+    ourScore: row.our_score,
+    opponentScore: row.opponent_score,
+    matchDate: row.match_date,
+    notes: row.notes,
+    createdAt: new Date(row.created_at).getTime(),
+    updatedAt: new Date(row.updated_at).getTime(),
+  }
+}
+
 // ---------- Players ----------
 
 export async function fetchPlayers() {
@@ -145,4 +160,50 @@ export async function deleteAllCompositions() {
   if (error) throw error
 }
 
-export { rowToComposition, rowToPlayer }
+// ---------- Match Center ----------
+
+export async function fetchMatches() {
+  const { data, error } = await supabase.from('matches').select('*')
+  if (error) throw error
+  return data.map(rowToMatch)
+}
+
+export async function insertMatch(draft) {
+  const { data, error } = await supabase
+    .from('matches')
+    .insert({
+      opponent_name: draft.opponentName,
+      map_uuid: draft.mapUuid,
+      composition_id: draft.compositionId || null,
+      our_score: draft.ourScore,
+      opponent_score: draft.opponentScore,
+      match_date: draft.matchDate || null,
+      notes: draft.notes || '',
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return rowToMatch(data)
+}
+
+export async function updateMatchRow(id, patch) {
+  const dbPatch = { updated_at: new Date().toISOString() }
+  if ('opponentName' in patch) dbPatch.opponent_name = patch.opponentName
+  if ('mapUuid' in patch) dbPatch.map_uuid = patch.mapUuid
+  if ('compositionId' in patch) dbPatch.composition_id = patch.compositionId
+  if ('ourScore' in patch) dbPatch.our_score = patch.ourScore
+  if ('opponentScore' in patch) dbPatch.opponent_score = patch.opponentScore
+  if ('matchDate' in patch) dbPatch.match_date = patch.matchDate
+  if ('notes' in patch) dbPatch.notes = patch.notes
+
+  const { data, error } = await supabase.from('matches').update(dbPatch).eq('id', id).select().single()
+  if (error) throw error
+  return rowToMatch(data)
+}
+
+export async function deleteMatchRow(id) {
+  const { error } = await supabase.from('matches').delete().eq('id', id)
+  if (error) throw error
+}
+
+export { rowToComposition, rowToPlayer, rowToMatch }

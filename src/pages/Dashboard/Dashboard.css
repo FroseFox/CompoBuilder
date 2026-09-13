@@ -1,8 +1,17 @@
 .dashboard {
-  padding: var(--space-7) 0 var(--space-8);
+  padding: var(--space-6) 0 var(--space-8);
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
+}
+
+.dashboard__eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-red);
 }
 
 .dashboard__header p {
@@ -14,6 +23,85 @@
   margin: 8px 0 4px;
 }
 
+/* ---------- Hero : progression + répartition ---------- */
+.dashboard__hero {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-4);
+}
+
+.dashboard__hero-progress,
+.dashboard__hero-side {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-solid);
+  padding: var(--space-5);
+}
+
+.panel-eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.dashboard__hero-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.6rem;
+  color: var(--text-primary);
+  margin: 6px 0 var(--space-3);
+}
+
+.dashboard__hero-caption {
+  margin-top: var(--space-3);
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.dashboard__hero-side-list {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard__hero-side-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.dashboard__hero-side-list b {
+  margin-left: auto;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot--validated { background: var(--role-sentinel); }
+.dot--testing { background: var(--role-initiator); }
+.dot--needs_work { background: var(--role-duelist); }
+.dot--todo { background: var(--text-tertiary); }
+
+@media (max-width: 800px) {
+  .dashboard__hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Cartes stat ---------- */
 .dashboard__stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -24,11 +112,29 @@
   padding: var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-panel);
-  backdrop-filter: blur(14px);
+  background: var(--bg-panel-solid);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+.stat-card__icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
 }
 
 .stat-card__value {
@@ -43,21 +149,16 @@
   color: var(--text-secondary);
 }
 
+.stat-card--validated .stat-card__icon { color: var(--role-sentinel); background: rgba(61, 220, 151, 0.12); }
 .stat-card--validated .stat-card__value { color: var(--role-sentinel); }
+.stat-card--testing .stat-card__icon { color: var(--role-initiator); background: rgba(255, 181, 76, 0.12); }
 .stat-card--testing .stat-card__value { color: var(--role-initiator); }
+.stat-card--needs_work .stat-card__icon { color: var(--role-duelist); background: var(--brand-red-soft); }
 .stat-card--needs_work .stat-card__value { color: var(--role-duelist); }
+.stat-card--todo .stat-card__value { color: var(--text-secondary); }
 .stat-card--empty .stat-card__value { color: var(--text-tertiary); }
 
-.dashboard__progress-section {
-  padding: var(--space-5);
-}
-
-.dashboard__progress-caption {
-  margin-top: var(--space-3);
-  font-size: 0.8rem;
-  color: var(--text-tertiary);
-}
-
+/* ---------- Listes de maps ---------- */
 .dashboard__lists {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -66,6 +167,21 @@
 
 .dashboard__bucket {
   padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-solid);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.dashboard__bucket:hover {
+  border-color: var(--border-strong);
+}
+
+.dashboard__bucket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
 }
 
 .dashboard__bucket h3 {
@@ -73,14 +189,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: var(--space-3);
 }
 
 .dashboard__bucket-count {
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 0.74rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.72rem;
   color: var(--text-tertiary);
+  background: var(--bg-hover);
+  border-radius: 999px;
+  padding: 2px 9px;
 }
 
 .dashboard__bucket-empty {
@@ -102,10 +220,12 @@
   border-radius: 7px;
   font-size: 0.86rem;
   color: var(--text-primary);
-  transition: background var(--dur-fast) var(--ease-out);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
 .dashboard__bucket a:hover {
   background: var(--bg-hover);
   color: var(--brand-red);
+  transform: translateX(3px);
 }

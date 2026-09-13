@@ -1,3 +1,4 @@
+import { STATUS_META } from '../../utils/storage'
 import './FilterBar.css'
 
 export const FILTERS = {
@@ -26,7 +27,16 @@ const SORT_LABELS = {
   [SORTS.INCOMPLETE_FIRST]: 'Non terminées en premier',
 }
 
-export default function FilterBar({ search, onSearchChange, filter, onFilterChange, sort, onSortChange }) {
+export default function FilterBar({
+  search,
+  onSearchChange,
+  filter,
+  onFilterChange,
+  statusFilter,
+  onStatusFilterChange,
+  sort,
+  onSortChange,
+}) {
   return (
     <div className="filter-bar">
       <div className="filter-bar__search">
@@ -61,6 +71,20 @@ export default function FilterBar({ search, onSearchChange, filter, onFilterChan
           </button>
         ))}
       </div>
+
+      <select
+        className="filter-bar__sort"
+        value={statusFilter}
+        onChange={(e) => onStatusFilterChange(e.target.value)}
+        aria-label="Filtrer par statut"
+      >
+        <option value="all">Tous les statuts</option>
+        {Object.entries(STATUS_META).map(([key, meta]) => (
+          <option key={key} value={key}>
+            {meta.emoji} {meta.label}
+          </option>
+        ))}
+      </select>
 
       <select
         className="filter-bar__sort"

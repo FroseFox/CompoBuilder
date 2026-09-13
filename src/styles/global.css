@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body,
 #root {
@@ -37,6 +41,38 @@ body::before {
 #root {
   position: relative;
   z-index: 1;
+}
+
+.app-layout {
+  display: flex;
+  align-items: stretch;
+  min-height: 100%;
+}
+
+.app-layout__main {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.app-layout__main::before {
+  content: '';
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  width: min(900px, 90%);
+  height: 420px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at top, var(--brand-red-glow) 0%, transparent 70%);
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (max-width: 900px) {
+  .app-layout {
+    flex-direction: column;
+  }
 }
 
 h1, h2, h3, h4 {
@@ -116,9 +152,9 @@ img {
 
 .container {
   width: 100%;
-  max-width: 1240px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 0 var(--space-5);
+  padding: 0 var(--space-6);
 }
 
 @media (max-width: 640px) {
@@ -127,14 +163,23 @@ img {
   }
 }
 
-/* Panneau glass générique — base réutilisée par les cartes */
+/* Panneau générique — base réutilisée par les cartes (fond plat, façon dashboard esport) */
 .glass-panel {
-  background: var(--bg-panel);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  background: var(--bg-panel-solid);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
+}
+
+/* Libellé rouge en majuscules au-dessus d'un titre de section */
+.eyebrow,
+.home__eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-red);
 }
 
 .btn {
@@ -164,7 +209,7 @@ img {
   transform: translateY(-1px);
 }
 .btn:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.97);
 }
 .btn:disabled {
   opacity: 0.4;

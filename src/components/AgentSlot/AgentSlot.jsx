@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import RoleBadge from '../RoleBadge/RoleBadge'
 import PlayerSelect from '../PlayerSelect/PlayerSelect'
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
@@ -17,12 +17,21 @@ export default function AgentSlot({
   onAssignPlayer,
 }) {
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const player = playerId ? players[playerId] : null
 
   const handleDragStart = (e) => {
     if (!agent || !editable) return e.preventDefault()
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', String(index))
+    // Un léger délai laisse le navigateur capturer l'image fantôme
+    // avant qu'on réduise l'opacité de l'élément d'origine.
+    requestAnimationFrame(() => setIsDragging(true))
+  }
+
+  const handleDragEnd = () => {
+    setIsDragging(false)
+    setIsDragOver(false)
   }
 
   const handleDragOver = (e) => {
@@ -50,10 +59,22 @@ export default function AgentSlot({
       } ${!editable ? 'agent-slot--readonly' : ''}`}
       draggable={editable && Boolean(agent)}
       onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={handleDrop}
-      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={editable ? { y: -3 } : undefined}
+      animate={{
+        scale: isDragging ? 0.93 : isDragOver ? 1.035 : 1,
+        opacity: isDragging ? 0.55 : 1,
+        rotate: isDragging ? -1.5 : 0,
+      }}
+      transition={{
+        layout: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+        scale: { type: 'spring', stiffness: 480, damping: 26 },
+        rotate: { type: 'spring', stiffness: 480, damping: 22 },
+        opacity: { duration: 0.15 },
+      }}
     >
       <span className="agent-slot__index">{`0${index + 1}`}</span>
 
@@ -80,11 +101,34 @@ export default function AgentSlot({
               onClick={() => onOpenSelection(index)}
               aria-label={`Remplacer ${agent.name}`}
             >
-              <img src={agent.portrait} alt={agent.name} className="agent-slot__portrait" />
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.img
+                  key={agent.uuid}
+                  src={agent.portrait}
+                  alt={agent.name}
+                  className="agent-slot__portrait"
+                  initial={{ opacity: 0, scale: 0.88 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                />
+              </AnimatePresence>
             </button>
           ) : (
             <div className="agent-slot__portrait-btn">
-              <img src={agent.portrait} alt={agent.name} className="agent-slot__portrait" />
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.img
+                  key={agent.uuid}
+                  src={agent.portrait}
+                  alt={agent.name}
+                  className="agent-slot__portrait"
+                  initial={{ opacity: 0, scale: 0.88 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                />
+              </AnimatePresence>
             </div>
           )}
 

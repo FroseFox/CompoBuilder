@@ -3,6 +3,12 @@ import { AnimatePresence, motion } from 'framer-motion'
 import RoleBadge from '../RoleBadge/RoleBadge'
 import './AgentSelectionModal.css'
 
+const panelVariants = {
+  hidden: { opacity: 0, y: 24, scale: 0.97 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 32 } },
+  exit: { opacity: 0, y: 16, scale: 0.98, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } },
+}
+
 export default function AgentSelectionModal({
   open,
   agents,
@@ -56,10 +62,10 @@ export default function AgentSelectionModal({
             role="dialog"
             aria-modal="true"
             aria-label="Sélection d'un agent"
-            initial={{ opacity: 0, y: 24, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={panelVariants}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="agent-modal__header">

@@ -14,13 +14,23 @@ export const STATUS = {
   VALIDATED: 'validated',
   TESTING: 'testing',
   NEEDS_WORK: 'needs_work',
+  TODO: 'todo',
 }
 
 export const STATUS_META = {
   [STATUS.VALIDATED]: { label: 'Validée', emoji: '🟢', color: '#3ddc97' },
   [STATUS.TESTING]: { label: 'En test', emoji: '🟡', color: '#ffb54c' },
   [STATUS.NEEDS_WORK]: { label: 'À retravailler', emoji: '🔴', color: '#ff5f6d' },
+  [STATUS.TODO]: { label: 'À faire', emoji: '⚪', color: '#c7cdd6' },
 }
+
+/**
+ * Rôle "joueur polyvalent", en plus des 4 rôles d'agents fournis par
+ * l'API Valorant. Couleur reprise de la palette joueur existante
+ * (PLAYER_COLORS) pour rester cohérente avec le reste de l'interface.
+ */
+export const FLEX_ROLE = { name: 'Flex', icon: null }
+export const FLEX_ROLE_COLOR = '#c7cdd6'
 
 export const PLAYER_COLORS = [
   '#ff4655', '#ff8a4c', '#ffc94c', '#8ce971',

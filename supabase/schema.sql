@@ -51,7 +51,7 @@ create table if not exists public.compositions (
     {"agentUuid": null, "playerId": null},
     {"agentUuid": null, "playerId": null}
   ]'::jsonb,
-  status text not null default 'testing' check (status in ('validated', 'testing', 'needs_work')),
+  status text not null default 'testing' check (status in ('validated', 'testing', 'needs_work', 'todo')),
   notes text not null default '',
   is_main boolean not null default false,
   created_at timestamptz not null default now(),
@@ -71,6 +71,10 @@ create table if not exists public.profiles (
   is_admin boolean not null default false
 );
 
+-- search_path figé (bonne pratique pour toute fonction SECURITY DEFINER)
+-- et EXECUTE révoqué pour public/anon/authenticated : cette fonction ne
+-- doit être appelée que par le trigger interne ci-dessous, jamais
+-- directement via l'API REST (/rest/v1/rpc/handle_new_user).
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -78,7 +82,9 @@ begin
   on conflict (id) do nothing;
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
+
+revoke execute on function public.handle_new_user() from public;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -138,12 +144,38 @@ create policy "Ecriture admin compositions" on public.compositions for all
   using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
   with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
 
+-- ---------- Match Center (historique des matchs joués) ----------
+
+create table if not exists public.matches (
+  id uuid primary key default gen_random_uuid(),
+  opponent_name text not null,
+  map_uuid text not null references public.maps(uuid),
+  composition_id uuid references public.compositions(id) on delete set null,
+  our_score int not null default 0,
+  opponent_score int not null default 0,
+  match_date date,
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.matches enable row level security;
+
+drop policy if exists "Lecture publique matches" on public.matches;
+create policy "Lecture publique matches" on public.matches for select using (true);
+
+drop policy if exists "Ecriture admin matches" on public.matches;
+create policy "Ecriture admin matches" on public.matches for all
+  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+
 -- ============================================================
 -- Temps réel (synchronisation entre tous les membres connectés)
 -- ============================================================
 
 alter publication supabase_realtime add table public.compositions;
 alter publication supabase_realtime add table public.players;
+alter publication supabase_realtime add table public.matches;
 
 -- ============================================================
 -- Dernière étape manuelle (à faire une seule fois) :

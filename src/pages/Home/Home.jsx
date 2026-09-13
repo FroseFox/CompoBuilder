@@ -15,6 +15,7 @@ export default function Home() {
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState(FILTERS.ALL)
+  const [statusFilter, setStatusFilter] = useState('all')
   const [sort, setSort] = useState(SORTS.ALPHA)
 
   // Résumé (comptage, statut, joueurs, date) calculé une seule fois par
@@ -34,6 +35,10 @@ export default function Home() {
       list = list.filter((m) => !summaries.get(m.uuid).hasProgress)
     }
 
+    if (statusFilter !== 'all') {
+      list = list.filter((m) => summaries.get(m.uuid).status === statusFilter)
+    }
+
     const withSummary = list.map((m) => ({ map: m, summary: summaries.get(m.uuid) }))
 
     withSummary.sort((a, b) => {
@@ -51,7 +56,7 @@ export default function Home() {
     })
 
     return withSummary
-  }, [maps, summaries, search, filter, sort])
+  }, [maps, summaries, search, filter, statusFilter, sort])
 
   const totalComplete = maps.filter((m) => summaries.get(m.uuid)?.filledCount === 5).length
 
@@ -97,6 +102,8 @@ export default function Home() {
               onSearchChange={setSearch}
               filter={filter}
               onFilterChange={setFilter}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
               sort={sort}
               onSortChange={setSort}
             />

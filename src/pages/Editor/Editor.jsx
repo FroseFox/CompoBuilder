@@ -149,6 +149,7 @@ export default function Editor() {
             </svg>
             Toutes les maps
           </button>
+          <span className="eyebrow editor__eyebrow">Composition</span>
           <h1 className="editor__title">{map?.name}</h1>
           <span className="editor__count">
             {filledCount}/5 agents sélectionnés sur cette composition

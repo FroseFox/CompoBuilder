@@ -20,6 +20,31 @@
   max-width: 480px;
 }
 
+.team-page__stats {
+  margin-bottom: var(--space-5);
+}
+
+.team-page__filter {
+  margin-bottom: var(--space-4);
+}
+
+.team-page__filter label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.team-page__filter select {
+  padding: 8px 30px 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+
 .team-page__empty {
   padding: var(--space-6);
   text-align: center;

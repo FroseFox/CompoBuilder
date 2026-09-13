@@ -4,7 +4,7 @@ import { usePlayers } from '../../context/PlayersContext'
 import { useCompositions } from '../../context/CompositionsContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
-import { PLAYER_COLORS } from '../../utils/storage'
+import { PLAYER_COLORS, FLEX_ROLE } from '../../utils/storage'
 import PlayerAvatar from '../../components/PlayerAvatar/PlayerAvatar'
 import RoleBadge from '../../components/RoleBadge/RoleBadge'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
@@ -25,9 +25,12 @@ export default function Team() {
   const [form, setForm] = useState(emptyForm)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
+  const [roleFilter, setRoleFilter] = useState('all')
+
   const roles = useMemo(() => {
     const map = new Map()
     agents.forEach((a) => map.set(a.role.name, a.role))
+    map.set(FLEX_ROLE.name, FLEX_ROLE)
     return [...map.values()]
   }, [agents])
 
@@ -35,6 +38,20 @@ export default function Team() {
     () => Object.values(players).sort((a, b) => a.pseudo.localeCompare(b.pseudo)),
     [players]
   )
+
+  const visiblePlayers = useMemo(() => {
+    if (roleFilter === 'all') return playerList
+    return playerList.filter((p) => p.primaryRole === roleFilter || p.secondaryRole === roleFilter)
+  }, [playerList, roleFilter])
+
+  const roleCounts = useMemo(() => {
+    const counts = new Map(roles.map((r) => [r.name, 0]))
+    playerList.forEach((p) => {
+      if (p.primaryRole && counts.has(p.primaryRole)) counts.set(p.primaryRole, counts.get(p.primaryRole) + 1)
+      if (p.secondaryRole && counts.has(p.secondaryRole)) counts.set(p.secondaryRole, counts.get(p.secondaryRole) + 1)
+    })
+    return counts
+  }, [roles, playerList])
 
   const openCreate = () => {
     setEditingId(null)
@@ -104,47 +121,88 @@ export default function Team() {
         </div>
       )}
 
+      {playerList.length > 0 && (
+        <div className="dashboard__stat-grid team-page__stats">
+          {roles.map((r) => (
+            <div key={r.name} className="stat-card">
+              <span className="stat-card__value">{roleCounts.get(r.name) || 0}</span>
+              <span className="stat-card__label">{r.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {playerList.length > 0 && (
+        <div className="team-page__filter">
+          <label>
+            <span>Filtrer par rôle</span>
+            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+              <option value="all">Tous les rôles</option>
+              {roles.map((r) => (
+                <option key={r.name} value={r.name}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+
       {playerList.length === 0 ? (
         <div className="team-page__empty glass-panel">
           <p>Aucun joueur pour le moment. Ajoutez votre effectif pour pouvoir l'assigner aux compositions.</p>
         </div>
+      ) : visiblePlayers.length === 0 ? (
+        <div className="team-page__empty glass-panel">
+          <p>Aucun joueur ne correspond à ce rôle.</p>
+        </div>
       ) : (
         <div className="team-page__grid">
-          {playerList.map((player) => (
-            <div key={player.id} className="player-card glass-panel">
-              <PlayerAvatar player={player} size="lg" />
-              <div className="player-card__info">
-                <h3>{player.pseudo}</h3>
-                <div className="player-card__roles">
-                  {player.primaryRole && <RoleBadge role={roles.find((r) => r.name === player.primaryRole)} size="sm" />}
-                  {player.secondaryRole && (
-                    <RoleBadge role={roles.find((r) => r.name === player.secondaryRole)} size="sm" />
-                  )}
-                  {!player.primaryRole && !player.secondaryRole && (
-                    <span className="player-card__no-role">Aucun rôle défini</span>
-                  )}
+          <AnimatePresence>
+            {visiblePlayers.map((player, index) => (
+              <motion.div
+                key={player.id}
+                className="player-card glass-panel"
+                layout
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.32, delay: Math.min(index * 0.04, 0.3), ease: [0.16, 1, 0.3, 1] }}
+              >
+                <PlayerAvatar player={player} size="lg" />
+                <div className="player-card__info">
+                  <h3>{player.pseudo}</h3>
+                  <div className="player-card__roles">
+                    {player.primaryRole && <RoleBadge role={roles.find((r) => r.name === player.primaryRole)} size="sm" />}
+                    {player.secondaryRole && (
+                      <RoleBadge role={roles.find((r) => r.name === player.secondaryRole)} size="sm" />
+                    )}
+                    {!player.primaryRole && !player.secondaryRole && (
+                      <span className="player-card__no-role">Aucun rôle défini</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {isAdmin && (
-                <div className="player-card__actions">
-                  <button className="btn btn-ghost btn-icon" onClick={() => openEdit(player)} aria-label={`Modifier ${player.pseudo}`}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                      <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-icon"
-                    onClick={() => setConfirmDeleteId(player.id)}
-                    aria-label={`Supprimer ${player.pseudo}`}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                      <path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+                {isAdmin && (
+                  <div className="player-card__actions">
+                    <button className="btn btn-ghost btn-icon" onClick={() => openEdit(player)} aria-label={`Modifier ${player.pseudo}`}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-icon"
+                      onClick={() => setConfirmDeleteId(player.id)}
+                      aria-label={`Supprimer ${player.pseudo}`}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
@@ -161,9 +219,8 @@ export default function Team() {
             <motion.form
               className="player-form glass-panel"
               initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.98 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 32 } }}
+              exit={{ opacity: 0, y: 10, scale: 0.98, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } }}
               onClick={(e) => e.stopPropagation()}
               onSubmit={handleSubmit}
             >
