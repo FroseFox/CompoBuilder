@@ -9,6 +9,7 @@ const ROLE_CLASS = {
   Initiateur: 'role--initiator',
   Sentinel: 'role--sentinel',
   Sentinelle: 'role--sentinel',
+  Flex: 'role--flex',
 }
 
 export default function RoleBadge({ role, size = 'md' }) {

@@ -55,3 +55,8 @@
   border-color: color-mix(in srgb, var(--role-sentinel) 35%, transparent);
   background: color-mix(in srgb, var(--role-sentinel) 12%, transparent);
 }
+.role-badge--flex {
+  color: var(--role-flex, #c7cdd6);
+  border-color: color-mix(in srgb, var(--role-flex, #c7cdd6) 35%, transparent);
+  background: color-mix(in srgb, var(--role-flex, #c7cdd6) 12%, transparent);
+}
