@@ -5,14 +5,18 @@ import { useCompositions } from '../../context/CompositionsContext'
 import { usePlayers } from '../../context/PlayersContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
+import { useSettings } from '../../context/SettingsContext'
 import { getCompsForMap } from '../../utils/compositions'
+import { sendDiscordMessage, compositionValidatedEmbed } from '../../utils/discordWebhook'
 import AgentSlot from '../../components/AgentSlot/AgentSlot'
 import AgentSelectionModal from '../../components/AgentSelectionModal/AgentSelectionModal'
 import CompositionTabs from '../../components/CompositionTabs/CompositionTabs'
 import StatusPicker, { StatusDot } from '../../components/StatusBadge/StatusBadge'
 import NotesEditor from '../../components/NotesEditor/NotesEditor'
 import RoleStats from '../../components/RoleStats/RoleStats'
+import ExportCompositionButton from '../../components/ExportCompositionButton/ExportCompositionButton'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
+import CompositionCompareModal from '../../components/CompositionCompareModal/CompositionCompareModal'
 import Loader from '../../components/Loader/Loader'
 import './Editor.css'
 
@@ -24,6 +28,7 @@ export default function Editor() {
   const { players } = usePlayers()
   const { isAdmin } = useAuth()
   const { pushToast } = useToast()
+  const { webhookUrl } = useSettings()
   const {
     compositionsByMap,
     status: compsStatus,
@@ -45,6 +50,7 @@ export default function Editor() {
   const [confirmClear, setConfirmClear] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [activeCompId, setActiveCompId] = useState(null)
+  const [compareOpen, setCompareOpen] = useState(false)
 
   const map = useMemo(() => maps.find((m) => m.uuid === mapId), [maps, mapId])
   const comps = getCompsForMap(compositionsByMap, mapId)
@@ -114,6 +120,19 @@ export default function Editor() {
     pushToast('Composition vidée.', 'success')
   }
 
+  const handleStatusChange = (newStatus) => {
+    const wasValidated = composition.status === 'validated'
+    setStatus(mapId, composition.id, newStatus)
+    // Notification Discord "best effort" seulement au passage à "Validée"
+    // (pas à chaque changement de statut, et pas si déjà validée avant).
+    if (newStatus === 'validated' && !wasValidated && webhookUrl) {
+      sendDiscordMessage(
+        webhookUrl,
+        compositionValidatedEmbed({ mapName: map?.name, compositionName: composition.name })
+      )
+    }
+  }
+
   const handleCreateComp = async () => {
     const name = `Composition ${comps.length + 1}`
     const newId = await createComposition(mapId, name)
@@ -169,13 +188,23 @@ export default function Editor() {
       {composition && (
         <div className="container editor__content">
           <section className="editor__section">
-            <div className="editor__section-header">
-              <h2>Compositions</h2>
-              <p>
-                {isAdmin
-                  ? 'Créez plusieurs compositions par map (principale, anti-rush, eco…) et marquez celle à afficher sur l\'accueil.'
-                  : 'Compositions disponibles pour cette map.'}
-              </p>
+            <div className="editor__section-header editor__section-header--with-action">
+              <div className="editor__section-header-text">
+                <h2>Compositions</h2>
+                <p>
+                  {isAdmin
+                    ? 'Créez plusieurs compositions par map (principale, anti-rush, eco…) et marquez celle à afficher sur l\'accueil.'
+                    : 'Compositions disponibles pour cette map.'}
+                </p>
+              </div>
+              {comps.length > 1 && (
+                <button type="button" className="btn btn-ghost" onClick={() => setCompareOpen(true)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 4v16M16 4v16M4 9h4M16 9h4M4 15h4M16 15h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                  Comparer
+                </button>
+              )}
             </div>
             <CompositionTabs
               comps={comps}
@@ -191,13 +220,21 @@ export default function Editor() {
           </section>
 
           <section className="editor__section">
-            <div className="editor__section-header">
-              <h2>Composition — {composition.name}</h2>
-              <p>
-                {isAdmin
-                  ? 'Cliquez sur un emplacement pour choisir un agent, glissez-déposez pour réorganiser, et assignez un joueur.'
-                  : 'Agents et joueurs assignés pour cette composition.'}
-              </p>
+            <div className="editor__section-header editor__section-header--with-action">
+              <div className="editor__section-header-text">
+                <h2>Composition — {composition.name}</h2>
+                <p>
+                  {isAdmin
+                    ? 'Cliquez sur un emplacement pour choisir un agent, glissez-déposez pour réorganiser, et assignez un joueur.'
+                    : 'Agents et joueurs assignés pour cette composition.'}
+                </p>
+              </div>
+              <ExportCompositionButton
+                map={map}
+                composition={composition}
+                agentByUuid={agentByUuid}
+                players={players}
+              />
             </div>
 
             <div className="editor__slots">
@@ -237,7 +274,7 @@ export default function Editor() {
                 <p>Où en est cette composition ?</p>
               </div>
               {isAdmin ? (
-                <StatusPicker value={composition.status} onChange={(s) => setStatus(mapId, composition.id, s)} />
+                <StatusPicker value={composition.status} onChange={handleStatusChange} />
               ) : (
                 <StatusDot status={composition.status} />
               )}
@@ -301,6 +338,14 @@ export default function Editor() {
         confirmLabel="Supprimer"
         onConfirm={handleDeleteComp}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      <CompositionCompareModal
+        open={compareOpen}
+        onClose={() => setCompareOpen(false)}
+        comps={comps}
+        agentByUuid={agentByUuid}
+        players={players}
       />
     </main>
   )

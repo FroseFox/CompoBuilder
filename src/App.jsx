@@ -4,6 +4,7 @@ import { AnimatePresence, MotionConfig } from 'framer-motion'
 import { ThemeProvider } from './context/ThemeContext'
 import { SoundProvider } from './context/SoundContext'
 import { AuthProvider } from './context/AuthContext'
+import { SettingsProvider } from './context/SettingsContext'
 import { DataProvider } from './context/DataContext'
 import { CompositionsProvider } from './context/CompositionsContext'
 import { PlayersProvider } from './context/PlayersContext'
@@ -103,15 +104,17 @@ export default function App() {
         <SoundProvider>
           <ToastProvider>
             <AuthProvider>
-              <DataProvider>
-                <PlayersProvider>
-                  <CompositionsProvider>
-                    <MatchesProvider>
-                      <AppShell />
-                    </MatchesProvider>
-                  </CompositionsProvider>
-                </PlayersProvider>
-              </DataProvider>
+              <SettingsProvider>
+                <DataProvider>
+                  <PlayersProvider>
+                    <CompositionsProvider>
+                      <MatchesProvider>
+                        <AppShell />
+                      </MatchesProvider>
+                    </CompositionsProvider>
+                  </PlayersProvider>
+                </DataProvider>
+              </SettingsProvider>
             </AuthProvider>
           </ToastProvider>
         </SoundProvider>

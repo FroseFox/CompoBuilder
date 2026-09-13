@@ -9,6 +9,7 @@ import { useToast } from '../../context/ToastContext'
 import ConfirmDialog from '../ConfirmDialog/ConfirmDialog'
 import GlobalSearch from '../GlobalSearch/GlobalSearch'
 import AuthPanel from '../AuthPanel/AuthPanel'
+import TeamSettingsModal from '../TeamSettingsModal/TeamSettingsModal'
 import './Navbar.css'
 
 const NAV_ITEMS = [
@@ -28,6 +29,7 @@ export default function Navbar() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const handleResetAll = async () => {
     await resetAll()
@@ -128,6 +130,17 @@ export default function Navbar() {
             </button>
             {isAdmin && (
               <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setSettingsOpen(true)
+                  setMobileMenuOpen(false)
+                }}
+              >
+                Réglages d'équipe
+              </button>
+            )}
+            {isAdmin && (
+              <button
                 className="btn btn-danger"
                 onClick={() => {
                   setConfirmOpen(true)
@@ -161,6 +174,17 @@ export default function Navbar() {
           </button>
 
           {isAdmin && (
+            <button
+              className="btn btn-ghost btn-icon sidebar__theme-toggle"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Réglages d'équipe"
+              title="Réglages d'équipe (webhook Discord)"
+            >
+              <SettingsIcon />
+            </button>
+          )}
+
+          {isAdmin && (
             <button className="btn btn-danger sidebar__reset" onClick={() => setConfirmOpen(true)}>
               <span>Réinitialiser tout</span>
             </button>
@@ -171,6 +195,8 @@ export default function Navbar() {
       </aside>
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      <TeamSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <ConfirmDialog
         open={confirmOpen}
@@ -223,6 +249,20 @@ function StatsIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <path d="M4 20V10M12 20V4M20 20v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function SettingsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M19.4 13.5a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V19.5a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H4.5a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H10a1.65 1.65 0 0 0 1-1.51V4.5a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V10c.36.62 1 1 1.51 1H19.5a2 2 0 1 1 0 4h-.09c-.62 0-1.15.38-1.51 1Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

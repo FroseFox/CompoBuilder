@@ -6,8 +6,10 @@ import { useMatches } from '../../context/MatchesContext'
 import { useData } from '../../context/DataContext'
 import { useCompositions } from '../../context/CompositionsContext'
 import { useToast } from '../../context/ToastContext'
+import { useSettings } from '../../context/SettingsContext'
 import { getCompsForMap } from '../../utils/compositions'
 import { computeMatchResult, MATCH_RESULT_META } from '../../utils/matches'
+import { sendDiscordMessage, matchResultEmbed } from '../../utils/discordWebhook'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
 import Loader from '../../components/Loader/Loader'
 import './MatchCenter.css'
@@ -28,6 +30,7 @@ export default function MatchCenter() {
   const { compositionsByMap } = useCompositions()
   const { matches, status, createMatch, updateMatch, deleteMatch } = useMatches()
   const { pushToast } = useToast()
+  const { webhookUrl } = useSettings()
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -97,7 +100,23 @@ export default function MatchCenter() {
       pushToast('Match mis à jour.', 'success')
     } else {
       const id = await createMatch(payload)
-      if (id) pushToast('Match enregistré.', 'success')
+      if (id) {
+        pushToast('Match enregistré.', 'success')
+        // Notification Discord "best effort" : ne bloque jamais l'UI et
+        // n'affiche pas d'erreur si elle échoue (webhook non configuré,
+        // Discord injoignable…) — l'enregistrement du match a déjà réussi.
+        if (webhookUrl) {
+          sendDiscordMessage(
+            webhookUrl,
+            matchResultEmbed({
+              opponentName: payload.opponentName,
+              ourScore: payload.ourScore,
+              opponentScore: payload.opponentScore,
+              mapName: mapByUuid.get(payload.mapUuid)?.name,
+            })
+          )
+        }
+      }
     }
     setFormOpen(false)
   }

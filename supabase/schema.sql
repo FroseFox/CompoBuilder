@@ -195,26 +195,6 @@ create policy "Modification admin compositions" on public.compositions for updat
 create policy "Suppression admin compositions" on public.compositions for delete
   using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
--- ---------- Match Center (historique des matchs joués) ----------
-
-create table if not exists public.matches (
-  id uuid primary key default gen_random_uuid(),
-  opponent_name text not null,
-  map_uuid text not null references public.maps(uuid),
-  composition_id uuid references public.compositions(id) on delete set null,
-  our_score int not null default 0,
-  opponent_score int not null default 0,
-  match_date date,
-  notes text not null default '',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-alter table public.matches enable row level security;
-
-drop policy if exists "Lecture publique matches" on public.matches;
-create policy "Lecture publique matches" on public.matches for select using (true);
-
 drop policy if exists "Ecriture admin matches" on public.matches;
 create policy "Ecriture admin matches" on public.matches for insert
   with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
@@ -224,10 +204,30 @@ create policy "Modification admin matches" on public.matches for update
 create policy "Suppression admin matches" on public.matches for delete
   using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
-drop policy if exists "Ecriture admin matches" on public.matches;
-create policy "Ecriture admin matches" on public.matches for all
-  using (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true))
-  with check (exists (select 1 from public.profiles where id = auth.uid() and is_admin = true));
+-- ---------- Réglages d'équipe (webhook Discord) ----------
+-- Table à une seule ligne (singleton, via la contrainte sur `id`).
+-- Lecture ET écriture réservées aux admins : contrairement aux autres
+-- tables, l'URL d'un webhook doit rester secrète (quiconque la lit
+-- peut poster dans votre salon Discord depuis l'extérieur de l'app).
+
+create table if not exists public.team_settings (
+  id boolean primary key default true,
+  discord_webhook_url text,
+  constraint team_settings_singleton check (id)
+);
+
+insert into public.team_settings (id) values (true) on conflict (id) do nothing;
+
+alter table public.team_settings enable row level security;
+
+drop policy if exists "Lecture admin team_settings" on public.team_settings;
+create policy "Lecture admin team_settings" on public.team_settings for select
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+
+drop policy if exists "Modification admin team_settings" on public.team_settings;
+create policy "Modification admin team_settings" on public.team_settings for update
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 -- ============================================================
 -- Temps réel (synchronisation entre tous les membres connectés)

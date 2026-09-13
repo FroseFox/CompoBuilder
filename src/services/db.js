@@ -206,4 +206,37 @@ export async function deleteMatchRow(id) {
   if (error) throw error
 }
 
+// ---------- Réglages d'équipe (webhook Discord) ----------
+// Table à une seule ligne (id = true). Lecture/écriture réservées aux
+// admins par les policies RLS : un visiteur non-admin reçoit ici une
+// ligne vide (rejetée par RLS), pas une erreur.
+
+function rowToTeamSettings(row) {
+  return { discordWebhookUrl: row?.discord_webhook_url || '' }
+}
+
+export async function fetchTeamSettings() {
+  const { data, error } = await supabase
+    .from('team_settings')
+    .select('discord_webhook_url')
+    .eq('id', true)
+    .maybeSingle()
+  if (error) throw error
+  return rowToTeamSettings(data)
+}
+
+export async function updateTeamSettingsRow(patch) {
+  const dbPatch = {}
+  if ('discordWebhookUrl' in patch) dbPatch.discord_webhook_url = patch.discordWebhookUrl || null
+
+  const { data, error } = await supabase
+    .from('team_settings')
+    .update(dbPatch)
+    .eq('id', true)
+    .select('discord_webhook_url')
+    .single()
+  if (error) throw error
+  return rowToTeamSettings(data)
+}
+
 export { rowToComposition, rowToPlayer, rowToMatch }

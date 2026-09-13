@@ -85,6 +85,30 @@
   font-size: 0.88rem;
 }
 
+/* Variante avec une action (bouton) alignée à droite du titre — utilisée
+   uniquement dans Editor.jsx, pas de risque de collision avec d'autres
+   pages chargées séparément. */
+.editor__section-header--with-action {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.editor__section-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 240px;
+}
+
+@media (max-width: 640px) {
+  .editor__section-header--with-action {
+    flex-direction: column;
+  }
+}
+
 .editor__slots {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

@@ -1,0 +1,10 @@
+.export-comp {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.export-comp__btn--icon {
+  padding-left: 10px;
+  padding-right: 10px;
+}
