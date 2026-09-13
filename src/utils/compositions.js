@@ -59,12 +59,7 @@ export function summarizeMap(compositionsByMap, mapUuid) {
 
 /** Statistiques globales, pour le tableau de bord. */
 export function computeDashboardStats(compositionsByMap, maps) {
-  const buckets = {
-    [STATUS.TODO]: 0,
-    [STATUS.VALIDATED]: 0,
-    [STATUS.TESTING]: 0,
-    [STATUS.NEEDS_WORK]: 0,
-  }
+  const buckets = { [STATUS.VALIDATED]: 0, [STATUS.TESTING]: 0, [STATUS.NEEDS_WORK]: 0 }
   let empty = 0
   let totalCompositions = 0
 
@@ -85,7 +80,6 @@ export function computeDashboardStats(compositionsByMap, maps) {
   return {
     totalMaps,
     totalCompositions,
-    todo: buckets[STATUS.TODO],
     validated: buckets[STATUS.VALIDATED],
     testing: buckets[STATUS.TESTING],
     needsWork: buckets[STATUS.NEEDS_WORK],
