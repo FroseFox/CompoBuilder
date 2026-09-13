@@ -18,7 +18,12 @@ export default function Dashboard() {
   )
 
   const mapsByBucket = useMemo(() => {
-    const buckets = { [STATUS.TESTING]: [], [STATUS.NEEDS_WORK]: [], empty: [] }
+    const buckets = {
+      [STATUS.TODO]: [],
+      [STATUS.TESTING]: [],
+      [STATUS.NEEDS_WORK]: [],
+      empty: [],
+    }
     maps.forEach((map) => {
       const comps = getCompsForMap(compositionsByMap, map.uuid)
       if (comps.length === 0) {
@@ -26,8 +31,7 @@ export default function Dashboard() {
         return
       }
       const main = comps.find((c) => c.isMain) || comps[0]
-      if (main.status === STATUS.TESTING) buckets[STATUS.TESTING].push(map)
-      if (main.status === STATUS.NEEDS_WORK) buckets[STATUS.NEEDS_WORK].push(map)
+      if (buckets[main.status]) buckets[main.status].push(map)
     })
     return buckets
   }, [maps, compositionsByMap])
@@ -54,6 +58,7 @@ export default function Dashboard() {
         <StatCard value={stats.validated} label="Maps terminées" tone="validated" />
         <StatCard value={stats.testing} label="Maps en test" tone="testing" />
         <StatCard value={stats.needsWork} label="À retravailler" tone="needs_work" />
+        <StatCard value={stats.todo} label="À faire" tone="todo" />
         <StatCard value={stats.empty} label="Maps vides" tone="empty" />
       </div>
 
@@ -74,6 +79,11 @@ export default function Dashboard() {
 
       <div className="dashboard__lists">
         <MapBucketList
+          title="À faire"
+          emoji={STATUS_META[STATUS.TODO].emoji}
+          maps={mapsByBucket[STATUS.TODO]}
+        />
+        <MapBucketList
           title="À retravailler"
           emoji={STATUS_META[STATUS.NEEDS_WORK].emoji}
           maps={mapsByBucket[STATUS.NEEDS_WORK]}
@@ -83,7 +93,7 @@ export default function Dashboard() {
           emoji={STATUS_META[STATUS.TESTING].emoji}
           maps={mapsByBucket[STATUS.TESTING]}
         />
-        <MapBucketList title="Sans composition" emoji="⬜" maps={mapsByBucket.empty} />
+        <MapBucketList title="Sans composition" emoji="⬛" maps={mapsByBucket.empty} />
       </div>
     </main>
   )
