@@ -1,29 +1,42 @@
 // ============================================================
-// Envoi de notifications à un webhook Discord, directement depuis le
-// navigateur (les webhooks Discord acceptent les requêtes cross-origin,
-// donc pas besoin d'un serveur intermédiaire pour ce petit outil
-// d'équipe).
+// Envoi de notifications à un webhook Discord.
 //
-// Toujours "best effort" : un échec (URL invalide, Discord injoignable,
-// webhook supprimé…) est simplement journalisé en console et ne doit
-// jamais faire échouer l'action principale de l'utilisateur (ajouter un
-// match, valider une composition).
+// Un fetch() direct depuis le navigateur vers discord.com échoue : les
+// webhooks Discord ne renvoient pas d'en-têtes CORS permissifs pour une
+// requête JSON envoyée depuis un site tiers, donc le navigateur bloque
+// l'appel avant même qu'il parte. On passe donc par une Edge Function
+// Supabase (supabase/functions/discord-notify), qui fait l'appel
+// serveur → serveur (non soumis à CORS) et vérifie côté serveur que
+// l'appelant est bien un admin avant d'envoyer quoi que ce soit.
+//
+// Toujours "best effort" : un échec (webhook non configuré, Discord
+// injoignable…) est simplement journalisé en console et ne doit jamais
+// faire échouer l'action principale de l'utilisateur (ajouter un match,
+// valider une composition).
 // ============================================================
+
+import { supabase } from '../services/supabaseClient'
 
 const BRAND_COLOR = 0xff4655
 const SUCCESS_COLOR = 0x3ddc97
 const WARN_COLOR = 0xffb54c
 const DANGER_COLOR = 0xff5f6d
 
-export async function sendDiscordMessage(webhookUrl, payload) {
-  if (!webhookUrl) return false
+/**
+ * @param {object} payload Corps du message Discord (voir les fabriques
+ *   *Embed ci-dessous).
+ * @param {object} [options]
+ * @param {string} [options.testUrl] URL de webhook non encore
+ *   enregistrée, utilisée uniquement par le bouton "Tester" du panneau
+ *   de réglages (avant sauvegarde).
+ */
+export async function sendDiscordMessage(payload, { testUrl } = {}) {
   try {
-    const res = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+    const { data, error } = await supabase.functions.invoke('discord-notify', {
+      body: { payload, testUrl },
     })
-    return res.ok
+    if (error) throw error
+    return Boolean(data?.ok)
   } catch (err) {
     console.error('Envoi webhook Discord impossible :', err)
     return false

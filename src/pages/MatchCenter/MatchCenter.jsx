@@ -107,7 +107,6 @@ export default function MatchCenter() {
         // Discord injoignable…) — l'enregistrement du match a déjà réussi.
         if (webhookUrl) {
           sendDiscordMessage(
-            webhookUrl,
             matchResultEmbed({
               opponentName: payload.opponentName,
               ourScore: payload.ourScore,

@@ -33,7 +33,7 @@ export default function TeamSettingsModal({ open, onClose }) {
     const url = draft.trim()
     if (!url) return
     setTesting(true)
-    const ok = await sendDiscordMessage(url, testMessageEmbed())
+    const ok = await sendDiscordMessage(testMessageEmbed(), { testUrl: url })
     setTesting(false)
     pushToast(
       ok ? 'Message de test envoyé — regardez votre salon Discord.' : "Échec de l'envoi. Vérifiez l'URL du webhook.",

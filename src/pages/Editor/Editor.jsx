@@ -126,10 +126,7 @@ export default function Editor() {
     // Notification Discord "best effort" seulement au passage à "Validée"
     // (pas à chaque changement de statut, et pas si déjà validée avant).
     if (newStatus === 'validated' && !wasValidated && webhookUrl) {
-      sendDiscordMessage(
-        webhookUrl,
-        compositionValidatedEmbed({ mapName: map?.name, compositionName: composition.name })
-      )
+      sendDiscordMessage(compositionValidatedEmbed({ mapName: map?.name, compositionName: composition.name }))
     }
   }
 
