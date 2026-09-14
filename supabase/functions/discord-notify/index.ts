@@ -75,11 +75,17 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Aucun webhook Discord valide n'est configuré." }, 400)
   }
 
+  // "MatchNotif" comme nom d'expéditeur par défaut, même si l'avatar du
+  // webhook n'a pas encore été configuré côté Discord (l'avatar, lui,
+  // doit être importé manuellement dans les réglages du webhook Discord :
+  // une URL data:/base64 n'est pas acceptée par le champ avatar_url).
+  const discordPayload = { username: "MatchNotif", ...(body.payload as object || {}) }
+
   try {
     const discordRes = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body.payload || {}),
+      body: JSON.stringify(discordPayload),
     })
     return json({ ok: discordRes.ok, status: discordRes.status })
   } catch (err) {

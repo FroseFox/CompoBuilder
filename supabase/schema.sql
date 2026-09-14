@@ -72,8 +72,10 @@ create table if not exists public.matches (
   opponent_name text not null,
   map_uuid text not null references public.maps(uuid),
   composition_id uuid references public.compositions(id) on delete set null,
-  our_score integer not null default 0,
-  opponent_score integer not null default 0,
+  -- NULL sur les deux colonnes = match "programmé" (à venir), pas
+  -- encore joué : voir isMatchPlayed() dans src/utils/matches.js.
+  our_score integer,
+  opponent_score integer,
   match_date date,
   notes text not null default '',
   position integer not null default 0,

@@ -13,6 +13,7 @@ import {
   computePlayerStats,
   getRecentForm,
   computeMatchResult,
+  isMatchPlayed,
   MATCH_RESULT_META,
 } from '../../utils/matches'
 import ProgressBar from '../../components/ProgressBar/ProgressBar'
@@ -26,7 +27,9 @@ export default function Stats() {
   const { compositionsByMap } = useCompositions()
   const { players } = usePlayers()
 
-  const matchList = useMemo(() => Object.values(matches), [matches])
+  // Seuls les matchs joués comptent dans les statistiques — un match
+  // programmé (à venir, sans score) fausserait les taux de victoire.
+  const matchList = useMemo(() => Object.values(matches).filter(isMatchPlayed), [matches])
 
   const overall = useMemo(() => computeOverallRecord(matchList), [matchList])
   const mapStats = useMemo(() => computeMapStats(matchList, maps), [matchList, maps])

@@ -62,6 +62,24 @@ export function matchResultEmbed({ opponentName, ourScore, opponentScore, mapNam
   }
 }
 
+export function matchScheduledEmbed({ opponentName, matchDate, mapName }) {
+  const dateLabel = matchDate
+    ? new Date(matchDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+    : 'date à confirmer'
+
+  return {
+    embeds: [
+      {
+        title: '📅 Match programmé',
+        description: `Contre **${opponentName}**${mapName ? ` sur ${mapName}` : ''} — ${dateLabel}.`,
+        color: BRAND_COLOR,
+        footer: { text: 'Comp Builder' },
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  }
+}
+
 export function compositionValidatedEmbed({ mapName, compositionName }) {
   return {
     embeds: [

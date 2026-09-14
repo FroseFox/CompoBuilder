@@ -8,8 +8,8 @@ import { useCompositions } from '../../context/CompositionsContext'
 import { useToast } from '../../context/ToastContext'
 import { useSettings } from '../../context/SettingsContext'
 import { getCompsForMap } from '../../utils/compositions'
-import { computeMatchResult, MATCH_RESULT_META } from '../../utils/matches'
-import { sendDiscordMessage, matchResultEmbed } from '../../utils/discordWebhook'
+import { computeMatchResult, isMatchPlayed, MATCH_RESULT_META } from '../../utils/matches'
+import { sendDiscordMessage, matchResultEmbed, matchScheduledEmbed } from '../../utils/discordWebhook'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
 import Loader from '../../components/Loader/Loader'
 import './MatchCenter.css'
@@ -33,42 +33,88 @@ export default function MatchCenter() {
   const { webhookUrl } = useSettings()
 
   const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState('played') // 'played' | 'scheduled'
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const mapByUuid = useMemo(() => new Map(maps.map((m) => [m.uuid, m])), [maps])
 
-  const matchList = useMemo(
+  const playedMatches = useMemo(
     () =>
-      Object.values(matches).sort((a, b) => {
-        if (a.matchDate && b.matchDate) return b.matchDate.localeCompare(a.matchDate)
-        if (a.matchDate) return -1
-        if (b.matchDate) return 1
-        return b.createdAt - a.createdAt
-      }),
+      Object.values(matches)
+        .filter(isMatchPlayed)
+        .sort((a, b) => {
+          if (a.matchDate && b.matchDate) return b.matchDate.localeCompare(a.matchDate)
+          if (a.matchDate) return -1
+          if (b.matchDate) return 1
+          return b.createdAt - a.createdAt
+        }),
     [matches]
   )
+
+  // Matchs à venir : les plus proches en premier ; sans date, à la fin.
+  const upcomingMatches = useMemo(
+    () =>
+      Object.values(matches)
+        .filter((m) => !isMatchPlayed(m))
+        .sort((a, b) => {
+          if (a.matchDate && b.matchDate) return a.matchDate.localeCompare(b.matchDate)
+          if (a.matchDate) return -1
+          if (b.matchDate) return 1
+          return a.createdAt - b.createdAt
+        }),
+    [matches]
+  )
+
+  const matchList = playedMatches
 
   const compsForSelectedMap = useMemo(
     () => (form.mapUuid ? getCompsForMap(compositionsByMap, form.mapUuid) : []),
     [compositionsByMap, form.mapUuid]
   )
 
-  const openCreate = () => {
+  const openCreatePlayed = () => {
     setEditingId(null)
+    setFormMode('played')
+    setForm(emptyForm)
+    setFormOpen(true)
+  }
+
+  const openCreateScheduled = () => {
+    setEditingId(null)
+    setFormMode('scheduled')
     setForm(emptyForm)
     setFormOpen(true)
   }
 
   const openEdit = (match) => {
     setEditingId(match.id)
+    setFormMode(isMatchPlayed(match) ? 'played' : 'scheduled')
     setForm({
       opponentName: match.opponentName,
       mapUuid: match.mapUuid,
       compositionId: match.compositionId || '',
-      ourScore: String(match.ourScore),
-      opponentScore: String(match.opponentScore),
+      ourScore: match.ourScore === null || match.ourScore === undefined ? '' : String(match.ourScore),
+      opponentScore: match.opponentScore === null || match.opponentScore === undefined ? '' : String(match.opponentScore),
+      matchDate: match.matchDate || '',
+      notes: match.notes || '',
+    })
+    setFormOpen(true)
+  }
+
+  // Bascule un match programmé vers "joué" : même formulaire, mais on
+  // force le mode 'played' pour faire apparaître les champs de score
+  // (qui valent '' puisque le match n'a pas encore de résultat).
+  const openFillResult = (match) => {
+    setEditingId(match.id)
+    setFormMode('played')
+    setForm({
+      opponentName: match.opponentName,
+      mapUuid: match.mapUuid,
+      compositionId: match.compositionId || '',
+      ourScore: '',
+      opponentScore: '',
       matchDate: match.matchDate || '',
       notes: match.notes || '',
     })
@@ -84,27 +130,51 @@ export default function MatchCenter() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.opponentName.trim() || !form.mapUuid) return
+    if (formMode === 'scheduled' && !form.matchDate) return
 
     const payload = {
       opponentName: form.opponentName.trim(),
       mapUuid: form.mapUuid,
       compositionId: form.compositionId || null,
-      ourScore: Number(form.ourScore) || 0,
-      opponentScore: Number(form.opponentScore) || 0,
+      ourScore: formMode === 'scheduled' ? null : Number(form.ourScore) || 0,
+      opponentScore: formMode === 'scheduled' ? null : Number(form.opponentScore) || 0,
       matchDate: form.matchDate || null,
       notes: form.notes.trim(),
     }
 
+    // Notifications Discord "best effort" : ne bloquent jamais l'UI et
+    // n'affichent pas d'erreur si elles échouent (webhook non configuré,
+    // Discord injoignable…) — l'enregistrement a déjà réussi de toute façon.
     if (editingId) {
+      const previousMatch = matches[editingId]
+      const resultJustFilled = previousMatch && !isMatchPlayed(previousMatch) && formMode === 'played'
       await updateMatch(editingId, payload)
-      pushToast('Match mis à jour.', 'success')
+      pushToast(resultJustFilled ? 'Résultat enregistré.' : 'Match mis à jour.', 'success')
+      if (resultJustFilled && webhookUrl) {
+        sendDiscordMessage(
+          matchResultEmbed({
+            opponentName: payload.opponentName,
+            ourScore: payload.ourScore,
+            opponentScore: payload.opponentScore,
+            mapName: mapByUuid.get(payload.mapUuid)?.name,
+          })
+        )
+      }
     } else {
       const id = await createMatch(payload)
-      if (id) {
+      if (id && formMode === 'scheduled') {
+        pushToast('Match programmé.', 'success')
+        if (webhookUrl) {
+          sendDiscordMessage(
+            matchScheduledEmbed({
+              opponentName: payload.opponentName,
+              matchDate: payload.matchDate,
+              mapName: mapByUuid.get(payload.mapUuid)?.name,
+            })
+          )
+        }
+      } else if (id) {
         pushToast('Match enregistré.', 'success')
-        // Notification Discord "best effort" : ne bloque jamais l'UI et
-        // n'affiche pas d'erreur si elle échoue (webhook non configuré,
-        // Discord injoignable…) — l'enregistrement du match a déjà réussi.
         if (webhookUrl) {
           sendDiscordMessage(
             matchResultEmbed({
@@ -132,25 +202,25 @@ export default function MatchCenter() {
         <div>
           <span className="home__eyebrow">Historique</span>
           <h1 className="match-center__title">Match Center</h1>
-          <p>L'historique de vos matchs joués : score, map, adversaire et composition utilisée.</p>
+          <p>Vos matchs à venir et l'historique de vos matchs joués : score, map, adversaire et composition utilisée.</p>
         </div>
-        {matchList.length > 0 && (
-          <div className="match-center__header-actions">
+        <div className="match-center__header-actions">
+          {matchList.length > 0 && (
             <Link to="/stats" className="btn btn-ghost">
               Voir les statistiques
             </Link>
-            {isAdmin && (
-              <button className="btn btn-primary" onClick={openCreate}>
-                + Ajouter un match
-              </button>
-            )}
-          </div>
-        )}
-        {matchList.length === 0 && isAdmin && (
-          <button className="btn btn-primary" onClick={openCreate}>
-            + Ajouter un match
-          </button>
-        )}
+          )}
+          {isAdmin && (
+            <button className="btn btn-ghost" onClick={openCreateScheduled}>
+              + Programmer un match
+            </button>
+          )}
+          {isAdmin && (
+            <button className="btn btn-primary" onClick={openCreatePlayed}>
+              + Ajouter un résultat
+            </button>
+          )}
+        </div>
       </div>
 
       {status === 'loading' && (
@@ -166,18 +236,84 @@ export default function MatchCenter() {
         </div>
       )}
 
-      {status === 'ready' && matchList.length === 0 && (
+      {status === 'ready' && upcomingMatches.length > 0 && (
+        <section className="match-center__upcoming">
+          <div className="match-center__section-header">
+            <h2>Matchs à venir</h2>
+            <p>Programmés mais pas encore joués.</p>
+          </div>
+          <div className="upcoming-match-list">
+            {upcomingMatches.map((match) => {
+              const map = mapByUuid.get(match.mapUuid)
+              const comp = match.compositionId
+                ? Object.values(compositionsByMap[match.mapUuid] || {}).find((c) => c.id === match.compositionId)
+                : null
+
+              return (
+                <div key={match.id} className="upcoming-match glass-panel">
+                  <div className="upcoming-match__date">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <rect x="3.5" y="5" width="17" height="15.5" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                      <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                    {match.matchDate
+                      ? new Date(match.matchDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Date à définir'}
+                  </div>
+                  <div className="upcoming-match__info">
+                    <span className="upcoming-match__opponent">{match.opponentName}</span>
+                    <span className="upcoming-match__meta">
+                      {map?.name || 'Map à définir'}
+                      {comp ? ` · ${comp.name}` : ''}
+                    </span>
+                  </div>
+                  {isAdmin && (
+                    <div className="upcoming-match__actions">
+                      <button className="btn btn-primary" onClick={() => openFillResult(match)}>
+                        Renseigner le résultat
+                      </button>
+                      <button className="btn btn-ghost btn-icon" onClick={() => openEdit(match)} aria-label="Modifier">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-icon"
+                        onClick={() => setConfirmDeleteId(match.id)}
+                        aria-label="Supprimer"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {status === 'ready' && matchList.length === 0 && upcomingMatches.length === 0 && (
         <div className="match-center__empty glass-panel">
           <p>
             {isAdmin
-              ? 'Aucun match enregistré pour le moment. Ajoutez votre premier match joué.'
+              ? 'Aucun match enregistré pour le moment. Ajoutez un résultat ou programmez votre prochain match.'
               : "Aucun match n'a encore été enregistré."}
           </p>
         </div>
       )}
 
       {status === 'ready' && matchList.length > 0 && (
-        <div className="match-history-table-wrap glass-panel">
+        <section>
+          {upcomingMatches.length > 0 && (
+            <div className="match-center__section-header">
+              <h2>Historique</h2>
+              <p>Matchs déjà joués.</p>
+            </div>
+          )}
+          <div className="match-history-table-wrap glass-panel">
           <table className="match-history-table">
             <thead>
               <tr>
@@ -245,7 +381,8 @@ export default function MatchCenter() {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+        </section>
       )}
 
       <AnimatePresence>
@@ -266,7 +403,15 @@ export default function MatchCenter() {
               onClick={(e) => e.stopPropagation()}
               onSubmit={handleSubmit}
             >
-              <h3>{editingId ? 'Modifier le match' : 'Ajouter un match'}</h3>
+              <h3>
+                {formMode === 'scheduled'
+                  ? editingId
+                    ? 'Modifier le match programmé'
+                    : 'Programmer un match'
+                  : editingId
+                    ? 'Modifier le match'
+                    : 'Ajouter un résultat'}
+              </h3>
 
               <label className="player-form__field">
                 <span>Adversaire</span>
@@ -308,35 +453,38 @@ export default function MatchCenter() {
                 </select>
               </label>
 
-              <div className="match-center__form-row">
-                <label className="player-form__field">
-                  <span>Notre score</span>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={form.ourScore}
-                    onChange={(e) => setForm((f) => ({ ...f, ourScore: e.target.value }))}
-                    placeholder="13"
-                  />
-                </label>
-                <label className="player-form__field">
-                  <span>Score adverse</span>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={form.opponentScore}
-                    onChange={(e) => setForm((f) => ({ ...f, opponentScore: e.target.value }))}
-                    placeholder="7"
-                  />
-                </label>
-              </div>
+              {formMode === 'played' && (
+                <div className="match-center__form-row">
+                  <label className="player-form__field">
+                    <span>Notre score</span>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={form.ourScore}
+                      onChange={(e) => setForm((f) => ({ ...f, ourScore: e.target.value }))}
+                      placeholder="13"
+                    />
+                  </label>
+                  <label className="player-form__field">
+                    <span>Score adverse</span>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={form.opponentScore}
+                      onChange={(e) => setForm((f) => ({ ...f, opponentScore: e.target.value }))}
+                      placeholder="7"
+                    />
+                  </label>
+                </div>
+              )}
 
               <label className="player-form__field">
-                <span>Date (optionnel)</span>
+                <span>Date{formMode === 'played' ? ' (optionnel)' : ''}</span>
                 <input
                   type="date"
+                  required={formMode === 'scheduled'}
                   value={form.matchDate}
                   onChange={(e) => setForm((f) => ({ ...f, matchDate: e.target.value }))}
                 />
@@ -357,7 +505,7 @@ export default function MatchCenter() {
                   Annuler
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editingId ? 'Enregistrer' : 'Ajouter'}
+                  {editingId ? 'Enregistrer' : formMode === 'scheduled' ? 'Programmer' : 'Ajouter'}
                 </button>
               </div>
             </motion.form>

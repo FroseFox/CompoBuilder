@@ -14,6 +14,15 @@ export const MATCH_RESULT_META = {
   [MATCH_RESULT.DRAW]: { label: 'Nul', color: '#c7cdd6' },
 }
 
+/**
+ * Un match est "joué" si les deux scores sont renseignés. Un match dont
+ * our_score/opponent_score valent NULL est un match "programmé" (à
+ * venir) — pas de colonne de statut dédiée, juste l'absence de score.
+ */
+export function isMatchPlayed(match) {
+  return match.ourScore !== null && match.ourScore !== undefined && match.opponentScore !== null && match.opponentScore !== undefined
+}
+
 /** Résultat d'un match à partir du score. */
 export function computeMatchResult(match) {
   if (match.ourScore > match.opponentScore) return MATCH_RESULT.WIN
