@@ -101,12 +101,25 @@ export default function AgentSlot({
               onClick={() => onOpenSelection(index)}
               aria-label={`Remplacer ${agent.name}`}
             >
+              {/* Le portrait plein format est une image lourde (rendu haute
+                  résolution) : on affiche l'icône légère de l'agent en flou
+                  d'arrière-plan pendant son chargement, pour que la case ne
+                  reste jamais vide. */}
+              {agent.icon && (
+                <div
+                  className="agent-slot__portrait-placeholder"
+                  style={{ backgroundImage: `url(${agent.icon})` }}
+                  aria-hidden="true"
+                />
+              )}
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.img
                   key={agent.uuid}
                   src={agent.portrait}
                   alt={agent.name}
                   className="agent-slot__portrait"
+                  loading="eager"
+                  decoding="async"
                   initial={{ opacity: 0, scale: 0.88 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.92 }}
@@ -117,12 +130,21 @@ export default function AgentSlot({
             </button>
           ) : (
             <div className="agent-slot__portrait-btn">
+              {agent.icon && (
+                <div
+                  className="agent-slot__portrait-placeholder"
+                  style={{ backgroundImage: `url(${agent.icon})` }}
+                  aria-hidden="true"
+                />
+              )}
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.img
                   key={agent.uuid}
                   src={agent.portrait}
                   alt={agent.name}
                   className="agent-slot__portrait"
+                  loading="eager"
+                  decoding="async"
                   initial={{ opacity: 0, scale: 0.88 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.92 }}

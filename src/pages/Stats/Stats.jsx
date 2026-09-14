@@ -19,6 +19,7 @@ import {
 import ProgressBar from '../../components/ProgressBar/ProgressBar'
 import PlayerAvatar from '../../components/PlayerAvatar/PlayerAvatar'
 import Loader from '../../components/Loader/Loader'
+import CountUp from '../../components/CountUp/CountUp'
 import './Stats.css'
 
 export default function Stats() {
@@ -275,7 +276,9 @@ function OverviewCard({ value, label, tone, icon: Icon, index = 0 }) {
           <Icon />
         </span>
       )}
-      <span className="stat-card__value">{value}</span>
+      <span className="stat-card__value">
+        <CountUp value={value} />
+      </span>
       <span className="stat-card__label">{label}</span>
     </motion.div>
   )

@@ -155,7 +155,7 @@ export default function Editor() {
 
   return (
     <main className="editor">
-      <div className="editor__banner">
+      <div className="editor__banner corner-frame">
         <img src={map?.image} alt="" className="editor__banner-image" />
         <div className="editor__banner-scrim" />
         <div className="container editor__banner-content">

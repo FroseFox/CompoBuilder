@@ -18,6 +18,15 @@
   --role-sentinel: #3ddc97;
   --role-flex: #c7cdd6;
 
+  /* Accent secondaire "tactique" (froid), pour donner de la variété face
+     au rouge de marque : réticules/cadres HUD au repos, et tout ce qui
+     concerne le futur (matchs programmés) plutôt que l'action immédiate. */
+  --accent-cyan: #4ce0e6;
+  --accent-cyan-glow: rgba(76, 224, 230, 0.3);
+
+  /* Taille des coins en L des cadres tactiques (.corner-frame). */
+  --corner-size: 14px;
+
   /* Typographie */
   --font-display: 'Chakra Petch', 'Inter', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -60,6 +69,7 @@
   --shadow-lift: 0 16px 48px rgba(0, 0, 0, 0.5);
   --scanline-opacity: 0.05;
   --overlay-scrim: rgba(6, 9, 13, 0.72);
+  --frame-color: rgba(76, 224, 230, 0.4);
 }
 
 /* ---------- Thème clair ---------- */
@@ -78,4 +88,7 @@
   --shadow-lift: 0 20px 40px rgba(15, 25, 35, 0.14);
   --scanline-opacity: 0.03;
   --overlay-scrim: rgba(15, 20, 25, 0.45);
+  --accent-cyan: #0e8f95;
+  --accent-cyan-glow: rgba(14, 143, 149, 0.18);
+  --frame-color: rgba(14, 143, 149, 0.32);
 }

@@ -296,6 +296,10 @@ img {
   border-color: var(--brand-red);
   color: #fff;
   box-shadow: 0 4px 20px var(--brand-red-glow);
+  /* Coin coupé façon "chip" tactique, plutôt qu'un rectangle plein —
+     un des repères visuels les plus reconnaissables de l'UI Valorant. */
+  clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
+  padding-right: 24px;
 }
 .btn-primary:hover {
   background: #ff5c6a;
@@ -339,6 +343,7 @@ img {
 }
 
 .stat-card {
+  position: relative;
   padding: var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
@@ -348,6 +353,61 @@ img {
   gap: 8px;
   transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out);
+}
+
+/* ---------- Cadre tactique (coins en L, façon réticule HUD) ----------
+   Un repère visuel sur les cartes clés (cartes stat, cartes de maps, la
+   bannière de l'éditeur) : deux coins opposés en L, cyan au repos —
+   comme un viseur en veille — qui s'allument en rouge de marque au
+   survol ou au focus, comme un verrouillage de cible. */
+.corner-frame {
+  position: relative;
+}
+
+.corner-frame::before,
+.corner-frame::after,
+.stat-card::before,
+.stat-card::after {
+  content: '';
+  position: absolute;
+  width: var(--corner-size);
+  height: var(--corner-size);
+  pointer-events: none;
+  z-index: 2;
+  border-color: var(--frame-color);
+  transition: border-color var(--dur-fast) var(--ease-out), inset var(--dur-fast) var(--ease-out);
+}
+
+.corner-frame::before,
+.stat-card::before {
+  top: 7px;
+  left: 7px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+.corner-frame::after,
+.stat-card::after {
+  bottom: 7px;
+  right: 7px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+
+.corner-frame:hover::before,
+.corner-frame:focus-visible::before,
+.stat-card:hover::before {
+  border-color: var(--brand-red);
+  top: 5px;
+  left: 5px;
+}
+
+.corner-frame:hover::after,
+.corner-frame:focus-visible::after,
+.stat-card:hover::after {
+  border-color: var(--brand-red);
+  bottom: 5px;
+  right: 5px;
 }
 
 .stat-card:hover {
@@ -372,6 +432,7 @@ img {
   font-weight: 700;
   font-size: 2rem;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-card__label {

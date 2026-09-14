@@ -8,6 +8,7 @@ import { computeDashboardStats, getCompsForMap } from '../../utils/compositions'
 import { STATUS, STATUS_META } from '../../utils/storage'
 import ProgressBar from '../../components/ProgressBar/ProgressBar'
 import Loader from '../../components/Loader/Loader'
+import CountUp from '../../components/CountUp/CountUp'
 import './Dashboard.css'
 
 const STAT_ICON = {
@@ -150,7 +151,9 @@ function StatCard({ value, label, tone, icon, index = 0 }) {
       <span className="stat-card__icon">
         <Icon />
       </span>
-      <span className="stat-card__value">{value}</span>
+      <span className="stat-card__value">
+        <CountUp value={value} />
+      </span>
       <span className="stat-card__label">{label}</span>
     </motion.div>
   )

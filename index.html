@@ -13,6 +13,12 @@
       href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Les images de maps/agents viennent de ce CDN : établir la connexion
+         (DNS + TLS) le plus tôt possible fait gagner un aller-retour réseau
+         complet sur chaque image affichée plus bas dans la page. -->
+    <link rel="preconnect" href="https://valorant-api.com" />
+    <link rel="preconnect" href="https://media.valorant-api.com" crossorigin />
   </head>
   <body>
     <div id="root"></div>

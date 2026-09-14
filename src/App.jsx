@@ -31,21 +31,30 @@ const Stats = lazy(() => import('./pages/Stats/Stats'))
 function AppRoutes() {
   const location = useLocation()
 
+  // Le Suspense est imbriqué À L'INTÉRIEUR de chaque PageTransition (donc à
+  // l'intérieur d'AnimatePresence), pas englobant tout le bloc. S'il englobait
+  // AnimatePresence + Routes, un composant lazy pas encore chargé faisait
+  // basculer TOUT le sous-arbre sur le fallback pendant le chargement du
+  // chunk, ce qui démonte AnimatePresence en cours d'animation de sortie et
+  // lui fait perdre le suivi de la page en train de disparaître : elle reste
+  // alors bloquée à l'écran indéfiniment (page blanche après une recherche
+  // puis un clic, par ex.). Avec un Suspense propre à chaque page,
+  // AnimatePresence n'est plus jamais démonté pendant une transition.
+  const pageFallback = <div className="container"><Loader label="Chargement…" /></div>
+
   return (
-    <Suspense fallback={<div className="container"><Loader label="Chargement…" /></div>}>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<PageTransition><Home /></PageTransition>} />
-          <Route path="/editor/:mapId" element={<PageTransition><Editor /></PageTransition>} />
-          <Route path="/team" element={<PageTransition><Team /></PageTransition>} />
-          <Route path="/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
-          <Route path="/matchcenter" element={<PageTransition><MatchCenter /></PageTransition>} />
-          <Route path="/stats" element={<PageTransition><Stats /></PageTransition>} />
-          {/* Toute URL inconnue renvoie vers l'accueil plutôt que sur une page blanche. */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AnimatePresence>
-    </Suspense>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Suspense fallback={pageFallback}><Home /></Suspense></PageTransition>} />
+        <Route path="/editor/:mapId" element={<PageTransition><Suspense fallback={pageFallback}><Editor /></Suspense></PageTransition>} />
+        <Route path="/team" element={<PageTransition><Suspense fallback={pageFallback}><Team /></Suspense></PageTransition>} />
+        <Route path="/dashboard" element={<PageTransition><Suspense fallback={pageFallback}><Dashboard /></Suspense></PageTransition>} />
+        <Route path="/matchcenter" element={<PageTransition><Suspense fallback={pageFallback}><MatchCenter /></Suspense></PageTransition>} />
+        <Route path="/stats" element={<PageTransition><Suspense fallback={pageFallback}><Stats /></Suspense></PageTransition>} />
+        {/* Toute URL inconnue renvoie vers l'accueil plutôt que sur une page blanche. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
   )
 }
 

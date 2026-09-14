@@ -104,6 +104,19 @@
   height: 100%;
   object-fit: cover;
   object-position: top center;
+  z-index: 1;
+}
+
+/* Icône floutée affichée sous le portrait pendant son chargement — voir
+   le commentaire dans AgentSlot.jsx. */
+.agent-slot__portrait-placeholder {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(18px) saturate(1.15);
+  transform: scale(1.25);
+  opacity: 0.55;
 }
 
 .agent-slot__info {

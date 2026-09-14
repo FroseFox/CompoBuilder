@@ -162,7 +162,7 @@ export default function Team() {
             {visiblePlayers.map((player, index) => (
               <motion.div
                 key={player.id}
-                className="player-card glass-panel"
+                className="player-card glass-panel corner-frame"
                 layout
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}

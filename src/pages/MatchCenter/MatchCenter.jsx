@@ -313,6 +313,7 @@ export default function MatchCenter() {
               <p>Matchs déjà joués.</p>
             </div>
           )}
+          <div className="match-history-table-shell">
           <div className="match-history-table-wrap glass-panel">
           <table className="match-history-table">
             <thead>
@@ -381,6 +382,11 @@ export default function MatchCenter() {
               })}
             </tbody>
           </table>
+          </div>
+          {/* Indice visuel : sur mobile le tableau est plus large que l'écran
+              et se fait défiler au doigt horizontalement — ce voile en
+              dégradé sur le bord droit le signale (sinon rien ne l'indique). */}
+          <div className="match-history-table-shell__fade" aria-hidden="true" />
           </div>
         </section>
       )}

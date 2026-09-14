@@ -10,6 +10,18 @@
   position: relative;
   height: 320px;
   overflow: hidden;
+  /* Cadre tactique plus grand ici : la bannière est la pièce la plus
+     spectaculaire de la page, le cadre standard (14px) s'y perdrait.
+     Couleur au repos éclaircie : sur une photo sombre, le cyan translucide
+     standard devient quasi invisible — un blanc doux façon viseur photo
+     s'y détache bien mieux. */
+  --corner-size: 28px;
+  --frame-color: rgba(255, 255, 255, 0.55);
+}
+
+.editor__banner.corner-frame::before,
+.editor__banner.corner-frame::after {
+  border-width: 3px;
 }
 
 .editor__banner-image {

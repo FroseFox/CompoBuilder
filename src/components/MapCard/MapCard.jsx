@@ -20,11 +20,20 @@ export default function MapCard({ map, summary, players, index = 0 }) {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.4), ease: [0.16, 1, 0.3, 1] }}
-      layout
     >
-      <Link to={`/editor/${map.uuid}`} className="map-card glass-panel">
+      <Link to={`/editor/${map.uuid}`} className="map-card glass-panel corner-frame">
         <div className="map-card__image-wrap">
-          <img src={map.image} alt="" loading="lazy" decoding="async" className="map-card__image" />
+          {/* La vignette utilise le petit "listViewIcon" de l'API, pas le
+              splash plein format (bien plus lourd, pensé pour une bannière
+              pleine largeur) — ça évite de télécharger une image géante
+              pour l'afficher dans une carte de quelques centimètres. */}
+          <img
+            src={map.thumbnail || map.image}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="map-card__image"
+          />
           <div className="map-card__scrim" />
           <span className={`map-card__count ${isComplete ? 'map-card__count--full' : ''}`}>
             {filledCount}/5
