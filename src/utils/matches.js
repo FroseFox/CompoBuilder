@@ -1,6 +1,25 @@
 // ============================================================
 // Fonctions dérivées pour l'historique des matchs (Match Center).
+//
+// Un match est une série dans un format Best of 1/3/5 : ses manches
+// (une par map jouée), chacune avec sa propre composition et son
+// propre score, vivent dans match.maps (voir rowToMatch dans
+// src/services/db.js). Le "score du match" n'est jamais stocké tel
+// quel : il se déduit des manches, ici.
 // ============================================================
+
+export const MATCH_FORMAT = {
+  BO1: 'bo1',
+  BO3: 'bo3',
+  BO5: 'bo5',
+}
+
+/** maxMaps : nombre maximum de manches pour ce format (une série s'arrête dès qu'un camp a la majorité). */
+export const FORMAT_META = {
+  [MATCH_FORMAT.BO1]: { label: 'Bo1', maxMaps: 1, winsNeeded: 1 },
+  [MATCH_FORMAT.BO3]: { label: 'Bo3', maxMaps: 3, winsNeeded: 2 },
+  [MATCH_FORMAT.BO5]: { label: 'Bo5', maxMaps: 5, winsNeeded: 3 },
+}
 
 export const MATCH_RESULT = {
   WIN: 'win',
@@ -8,26 +27,87 @@ export const MATCH_RESULT = {
   DRAW: 'draw',
 }
 
+// Alignées sur les tokens de rôle déjà utilisés partout ailleurs dans
+// l'app (voir STATUS_META dans storage.js) plutôt que des couleurs
+// codées en dur : un seul jeu de teintes sémantiques pour toute l'app.
 export const MATCH_RESULT_META = {
-  [MATCH_RESULT.WIN]: { label: 'Victoire', color: '#3ddc97' },
-  [MATCH_RESULT.LOSS]: { label: 'Défaite', color: '#ff5f6d' },
-  [MATCH_RESULT.DRAW]: { label: 'Nul', color: '#c7cdd6' },
+  [MATCH_RESULT.WIN]: { label: 'Victoire', color: 'var(--role-sentinel)' },
+  [MATCH_RESULT.LOSS]: { label: 'Défaite', color: 'var(--role-duelist)' },
+  [MATCH_RESULT.DRAW]: { label: 'Nul', color: 'var(--role-flex)' },
+}
+
+/** Une manche est "jouée" si les deux scores sont renseignés. */
+export function isMapEntryPlayed(mapEntry) {
+  return (
+    mapEntry.ourScore !== null &&
+    mapEntry.ourScore !== undefined &&
+    mapEntry.opponentScore !== null &&
+    mapEntry.opponentScore !== undefined
+  )
+}
+
+function mapEntryResult(mapEntry) {
+  if (mapEntry.ourScore > mapEntry.opponentScore) return MATCH_RESULT.WIN
+  if (mapEntry.ourScore < mapEntry.opponentScore) return MATCH_RESULT.LOSS
+  return MATCH_RESULT.DRAW
 }
 
 /**
- * Un match est "joué" si les deux scores sont renseignés. Un match dont
- * our_score/opponent_score valent NULL est un match "programmé" (à
- * venir) — pas de colonne de statut dédiée, juste l'absence de score.
+ * Un match est "joué" dès qu'au moins une de ses manches a un score —
+ * une série en cours (1 map faite sur 3) a sa place dans l'historique,
+ * pas dans "à venir". Un match dont aucune manche n'a de score est
+ * "programmé" (à venir).
  */
 export function isMatchPlayed(match) {
-  return match.ourScore !== null && match.ourScore !== undefined && match.opponentScore !== null && match.opponentScore !== undefined
+  return (match.maps || []).some(isMapEntryPlayed)
 }
 
-/** Résultat d'un match à partir du score. */
+/** Nombre de manches gagnées par chaque camp (les seules manches jouées comptent). */
+export function computeSeriesScore(match) {
+  let ourWins = 0
+  let opponentWins = 0
+  ;(match.maps || []).forEach((m) => {
+    if (!isMapEntryPlayed(m)) return
+    if (m.ourScore > m.opponentScore) ourWins += 1
+    else if (m.ourScore < m.opponentScore) opponentWins += 1
+  })
+  return { ourWins, opponentWins }
+}
+
+/** Résultat de la série (majorité de manches gagnées). */
 export function computeMatchResult(match) {
-  if (match.ourScore > match.opponentScore) return MATCH_RESULT.WIN
-  if (match.ourScore < match.opponentScore) return MATCH_RESULT.LOSS
+  const { ourWins, opponentWins } = computeSeriesScore(match)
+  if (ourWins > opponentWins) return MATCH_RESULT.WIN
+  if (ourWins < opponentWins) return MATCH_RESULT.LOSS
   return MATCH_RESULT.DRAW
+}
+
+/**
+ * Une série est "décidée" dès qu'un camp a la majorité de manches
+ * requise par son format, ou que toutes les manches possibles ont été
+ * jouées. Sert à distinguer un Bo3 mené 1-0 (en cours, résultat pas
+ * encore acquis) d'un Bo3 réellement terminé — computeMatchResult
+ * répondrait "Victoire" dans les deux cas sans cette distinction.
+ */
+export function isSeriesDecided(match) {
+  const { ourWins, opponentWins } = computeSeriesScore(match)
+  const { winsNeeded, maxMaps } = FORMAT_META[match.format] || FORMAT_META[MATCH_FORMAT.BO1]
+  const playedCount = (match.maps || []).filter(isMapEntryPlayed).length
+  return ourWins >= winsNeeded || opponentWins >= winsNeeded || playedCount >= maxMaps
+}
+
+/**
+ * Score à afficher pour un match : en Bo1, le score de la manche
+ * elle-même (ex. "13 – 8", comme avant) puisqu'il n'y a qu'une seule
+ * map ; en Bo3/Bo5, le nombre de manches gagnées par camp (ex. "2 – 1").
+ */
+export function formatSeriesScore(match) {
+  const firstMap = (match.maps || [])[0]
+  if (match.format === MATCH_FORMAT.BO1 && firstMap && isMapEntryPlayed(firstMap)) {
+    return `${firstMap.ourScore} – ${firstMap.opponentScore}`
+  }
+  const { ourWins, opponentWins } = computeSeriesScore(match)
+  return `${ourWins} – ${opponentWins}`
 }
 
 function emptyRecord() {
@@ -46,21 +126,33 @@ function winRate(record) {
   return Math.round((record.wins / record.played) * 100)
 }
 
-/** Bilan global (victoires/défaites/nuls, taux de victoire) sur tout l'historique. */
+/** Bilan global (victoires/défaites/nuls, taux de victoire) sur tout l'historique — au niveau série. */
 export function computeOverallRecord(matches) {
   const record = emptyRecord()
   matches.forEach((m) => addToRecord(record, computeMatchResult(m)))
   return { ...record, winRate: winRate(record) }
 }
 
-/** Bilan par map, trié par nombre de matchs joués (les plus jouées d'abord). */
+/** Toutes les manches jouées de tous les matchs, à plat (chaque manche = une contribution indépendante aux stats par map/composition). */
+function playedMapEntries(matches) {
+  const out = []
+  matches.forEach((match) => {
+    ;(match.maps || []).forEach((mapEntry) => {
+      if (isMapEntryPlayed(mapEntry)) out.push(mapEntry)
+    })
+  })
+  return out
+}
+
+/** Bilan par map, trié par nombre de manches jouées (les plus jouées d'abord). Compte chaque manche, pas chaque match. */
 export function computeMapStats(matches, maps) {
   const mapByUuid = new Map(maps.map((m) => [m.uuid, m]))
   const byMap = new Map()
 
-  matches.forEach((match) => {
-    if (!byMap.has(match.mapUuid)) byMap.set(match.mapUuid, emptyRecord())
-    addToRecord(byMap.get(match.mapUuid), computeMatchResult(match))
+  playedMapEntries(matches).forEach((mapEntry) => {
+    if (!mapEntry.mapUuid) return
+    if (!byMap.has(mapEntry.mapUuid)) byMap.set(mapEntry.mapUuid, emptyRecord())
+    addToRecord(byMap.get(mapEntry.mapUuid), mapEntryResult(mapEntry))
   })
 
   return [...byMap.entries()]
@@ -77,25 +169,26 @@ export function computeMapStats(matches, maps) {
 /**
  * Bilan par composition utilisée, regroupé par map : pour chaque map,
  * la liste de ses compositions triée par taux de victoire (la
- * meilleure en premier, marquée isBest). Seuls les matchs avec une
- * composition assignée comptent.
+ * meilleure en premier, marquée isBest). Seules les manches avec une
+ * composition assignée comptent ; chaque manche (pas chaque match)
+ * est une contribution indépendante.
  */
 export function computeCompositionStatsByMap(matches, compositionsByMap, maps) {
   const mapByUuid = new Map(maps.map((m) => [m.uuid, m]))
   const byMapThenComp = new Map()
 
-  matches.forEach((match) => {
-    if (!match.compositionId) return
-    const comp = Object.values(compositionsByMap[match.mapUuid] || {}).find((c) => c.id === match.compositionId)
+  playedMapEntries(matches).forEach((mapEntry) => {
+    if (!mapEntry.mapUuid || !mapEntry.compositionId) return
+    const comp = Object.values(compositionsByMap[mapEntry.mapUuid] || {}).find((c) => c.id === mapEntry.compositionId)
     if (!comp) return
 
-    if (!byMapThenComp.has(match.mapUuid)) byMapThenComp.set(match.mapUuid, new Map())
-    const byComp = byMapThenComp.get(match.mapUuid)
+    if (!byMapThenComp.has(mapEntry.mapUuid)) byMapThenComp.set(mapEntry.mapUuid, new Map())
+    const byComp = byMapThenComp.get(mapEntry.mapUuid)
 
     if (!byComp.has(comp.id)) {
       byComp.set(comp.id, { compositionId: comp.id, compositionName: comp.name, ...emptyRecord() })
     }
-    addToRecord(byComp.get(comp.id), computeMatchResult(match))
+    addToRecord(byComp.get(comp.id), mapEntryResult(mapEntry))
   })
 
   return [...byMapThenComp.entries()]
@@ -116,81 +209,6 @@ export function computeCompositionStatsByMap(matches, compositionsByMap, maps) {
       }
     })
     .sort((a, b) => b.totalPlayed - a.totalPlayed)
-}
-
-/** Bilan face à chaque adversaire rencontré, trié par nombre de confrontations. */
-export function computeOpponentStats(matches) {
-  const byOpponent = new Map()
-
-  matches.forEach((match) => {
-    const key = match.opponentName.trim().toLowerCase()
-    if (!byOpponent.has(key)) {
-      byOpponent.set(key, { opponentName: match.opponentName, ...emptyRecord() })
-    }
-    addToRecord(byOpponent.get(key), computeMatchResult(match))
-  })
-
-  return [...byOpponent.values()]
-    .map((entry) => ({ ...entry, winRate: winRate(entry) }))
-    .sort((a, b) => b.played - a.played)
-}
-
-/**
- * Bilan par joueur : pour chaque joueur de l'effectif, son taux de
- * victoire sur les matchs où il figurait dans la composition utilisée,
- * ainsi que l'agent qu'il a le plus souvent joué. Seuls les matchs avec
- * une composition assignée comptent ; un joueur sans aucun match
- * n'apparaît pas dans le résultat.
- */
-export function computePlayerStats(matches, compositionsByMap, players, agents) {
-  const agentByUuid = new Map(agents.map((a) => [a.uuid, a]))
-  const byPlayer = new Map()
-
-  matches.forEach((match) => {
-    if (!match.compositionId) return
-    const comp = Object.values(compositionsByMap[match.mapUuid] || {}).find((c) => c.id === match.compositionId)
-    if (!comp) return
-
-    const result = computeMatchResult(match)
-
-    comp.slots.forEach((slot) => {
-      if (!slot.playerId || !players[slot.playerId]) return
-
-      if (!byPlayer.has(slot.playerId)) {
-        byPlayer.set(slot.playerId, { ...emptyRecord(), agentCounts: new Map() })
-      }
-      const entry = byPlayer.get(slot.playerId)
-      addToRecord(entry, result)
-
-      if (slot.agentUuid) {
-        entry.agentCounts.set(slot.agentUuid, (entry.agentCounts.get(slot.agentUuid) || 0) + 1)
-      }
-    })
-  })
-
-  return [...byPlayer.entries()]
-    .map(([playerId, entry]) => {
-      let topAgent = null
-      let topCount = 0
-      entry.agentCounts.forEach((count, agentUuid) => {
-        if (count > topCount) {
-          topCount = count
-          topAgent = agentByUuid.get(agentUuid) || null
-        }
-      })
-
-      return {
-        playerId,
-        player: players[playerId],
-        played: entry.played,
-        wins: entry.wins,
-        losses: entry.losses,
-        draws: entry.draws,
-        winRate: winRate(entry),
-        topAgent,
-      }
-    })
-    .sort((a, b) => b.played - a.played || b.winRate - a.winRate)
 }
 
 /** Les N matchs les plus récents (par date si renseignée, sinon par création), du plus ancien au plus récent. */

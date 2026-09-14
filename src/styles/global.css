@@ -24,18 +24,20 @@ body {
   overflow-x: hidden;
 }
 
-/* Fine grille tactique en arrière-plan, très discrète */
+/* Ambiance chaleureuse en fond de page : deux lueurs douces (rouge corail
+   + ambre) plutôt que la grille tactique froide de la version précédente
+   — le repère "outil militaire" cède la place à quelque chose de plus
+   accueillant, sans nuire à la lisibilité du contenu par-dessus. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image: linear-gradient(var(--border-subtle) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
-  background-size: 64px 64px;
-  opacity: var(--scanline-opacity);
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 90%);
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 0%, var(--brand-red-glow) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 100% 15%, var(--accent-amber-glow) 0%, transparent 60%);
+  opacity: var(--ambient-glow-opacity);
 }
 
 #root {
@@ -64,7 +66,7 @@ body::before {
   height: 420px;
   transform: translateX(-50%);
   background: radial-gradient(ellipse at top, var(--brand-red-glow) 0%, transparent 70%);
-  opacity: 0.12;
+  opacity: 0.14;
   pointer-events: none;
   z-index: 0;
 }
@@ -292,19 +294,14 @@ img {
 }
 
 .btn-primary {
-  background: var(--brand-red);
-  border-color: var(--brand-red);
+  background: linear-gradient(135deg, var(--brand-red) 0%, #ff8340 100%);
+  border-color: transparent;
   color: #fff;
-  box-shadow: 0 4px 20px var(--brand-red-glow);
-  /* Coin coupé façon "chip" tactique, plutôt qu'un rectangle plein —
-     un des repères visuels les plus reconnaissables de l'UI Valorant. */
-  clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
-  padding-right: 24px;
+  box-shadow: 0 6px 22px var(--brand-red-glow);
 }
 .btn-primary:hover {
-  background: #ff5c6a;
-  border-color: #ff5c6a;
-  box-shadow: 0 6px 26px var(--brand-red-glow);
+  background: linear-gradient(135deg, #ff6e5c 0%, #ff9a56 100%);
+  box-shadow: 0 10px 30px var(--brand-red-glow);
 }
 
 .btn-danger {
@@ -355,65 +352,62 @@ img {
     box-shadow var(--dur-fast) var(--ease-out);
 }
 
-/* ---------- Cadre tactique (coins en L, façon réticule HUD) ----------
-   Un repère visuel sur les cartes clés (cartes stat, cartes de maps, la
-   bannière de l'éditeur) : deux coins opposés en L, cyan au repos —
-   comme un viseur en veille — qui s'allument en rouge de marque au
-   survol ou au focus, comme un verrouillage de cible. */
-.corner-frame {
-  position: relative;
+/* ---------- Carte à accent coloré ----------
+   Remplace les fins coins en L de la version précédente (jugés trop
+   discrets) par une large bande de couleur en haut de la carte : le
+   repère visuel se voit immédiatement, de loin, et sa couleur porte du
+   sens (statut d'une map, rôle d'un joueur...) au lieu d'être purement
+   décorative. --accent-card-color se définit par carte (inline style ou
+   règle contextuelle) ; le rouge de marque sert de valeur par défaut.
+   Le survol soulève la carte et intensifie l'ombre dans la même teinte. */
+.accent-card,
+.accent-bar-static,
+.corner-frame,
+.stat-card {
+  isolation: isolate;
 }
 
-.corner-frame::before,
-.corner-frame::after,
-.stat-card::before,
-.stat-card::after {
-  content: '';
-  position: absolute;
-  width: var(--corner-size);
-  height: var(--corner-size);
-  pointer-events: none;
-  z-index: 2;
-  border-color: var(--frame-color);
-  transition: border-color var(--dur-fast) var(--ease-out), inset var(--dur-fast) var(--ease-out);
-}
-
+.accent-card::before,
+.accent-bar-static::before,
 .corner-frame::before,
 .stat-card::before {
-  top: 7px;
-  left: 7px;
-  border-top: 2px solid;
-  border-left: 2px solid;
+  content: '';
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: var(--space-4);
+  right: var(--space-4);
+  height: var(--accent-bar-size);
+  border-radius: 0 0 4px 4px;
+  background: var(--accent-card-color, var(--brand-red));
+  transform: scaleX(0.4);
+  transform-origin: left center;
+  opacity: 0.7;
+  transition: transform var(--dur-med) var(--ease-spring), opacity var(--dur-fast) var(--ease-out);
 }
 
-.corner-frame::after,
-.stat-card::after {
-  bottom: 7px;
-  right: 7px;
-  border-bottom: 2px solid;
-  border-right: 2px solid;
+.accent-bar-static::before {
+  transform: scaleX(1);
+  opacity: 1;
 }
 
+.accent-card:hover::before,
+.accent-card:focus-visible::before,
 .corner-frame:hover::before,
 .corner-frame:focus-visible::before,
 .stat-card:hover::before {
-  border-color: var(--brand-red);
-  top: 5px;
-  left: 5px;
+  transform: scaleX(1);
+  opacity: 1;
 }
 
-.corner-frame:hover::after,
-.corner-frame:focus-visible::after,
-.stat-card:hover::after {
-  border-color: var(--brand-red);
-  bottom: 5px;
-  right: 5px;
-}
-
+.accent-card:hover,
+.accent-card:focus-visible,
+.corner-frame:hover,
+.corner-frame:focus-visible,
 .stat-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 16px 36px -14px color-mix(in srgb, var(--accent-card-color, var(--brand-red)) 70%, transparent);
 }
 
 .stat-card__icon {
@@ -440,10 +434,13 @@ img {
   color: var(--text-secondary);
 }
 
+.stat-card--validated { --accent-card-color: var(--role-sentinel); }
 .stat-card--validated .stat-card__icon { color: var(--role-sentinel); background: rgba(61, 220, 151, 0.12); }
 .stat-card--validated .stat-card__value { color: var(--role-sentinel); }
+.stat-card--testing { --accent-card-color: var(--role-initiator); }
 .stat-card--testing .stat-card__icon { color: var(--role-initiator); background: rgba(255, 181, 76, 0.12); }
 .stat-card--testing .stat-card__value { color: var(--role-initiator); }
+.stat-card--needs_work { --accent-card-color: var(--role-duelist); }
 .stat-card--needs_work .stat-card__icon { color: var(--role-duelist); background: var(--brand-red-soft); }
 .stat-card--needs_work .stat-card__value { color: var(--role-duelist); }
 .stat-card--todo .stat-card__value { color: var(--text-secondary); }

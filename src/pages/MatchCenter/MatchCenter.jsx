@@ -8,20 +8,40 @@ import { useCompositions } from '../../context/CompositionsContext'
 import { useToast } from '../../context/ToastContext'
 import { useSettings } from '../../context/SettingsContext'
 import { getCompsForMap } from '../../utils/compositions'
-import { computeMatchResult, isMatchPlayed, MATCH_RESULT_META } from '../../utils/matches'
+import {
+  computeMatchResult,
+  computeOverallRecord,
+  formatSeriesScore,
+  isMatchPlayed,
+  isSeriesDecided,
+  FORMAT_META,
+  MATCH_FORMAT,
+  MATCH_RESULT_META,
+} from '../../utils/matches'
 import { sendDiscordMessage, matchResultEmbed, matchScheduledEmbed } from '../../utils/discordWebhook'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
 import Loader from '../../components/Loader/Loader'
 import './MatchCenter.css'
 
+const emptyMapRow = () => ({ mapUuid: '', compositionId: '', ourScore: '', opponentScore: '' })
+
 const emptyForm = {
   opponentName: '',
-  mapUuid: '',
-  compositionId: '',
-  ourScore: '',
-  opponentScore: '',
+  format: MATCH_FORMAT.BO1,
   matchDate: '',
   notes: '',
+  maps: [emptyMapRow()],
+}
+
+/** Reconstruit le tableau de manches du formulaire à partir d'un match existant (édition / renseigner un résultat). */
+function mapsToFormRows(match) {
+  const rows = match.maps && match.maps.length > 0 ? match.maps : [emptyMapRow()]
+  return rows.map((m) => ({
+    mapUuid: m.mapUuid || '',
+    compositionId: m.compositionId || '',
+    ourScore: m.ourScore === null || m.ourScore === undefined ? '' : String(m.ourScore),
+    opponentScore: m.opponentScore === null || m.opponentScore === undefined ? '' : String(m.opponentScore),
+  }))
 }
 
 export default function MatchCenter() {
@@ -39,6 +59,11 @@ export default function MatchCenter() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const mapByUuid = useMemo(() => new Map(maps.map((m) => [m.uuid, m])), [maps])
+
+  const compositionName = (mapUuid, compositionId) => {
+    if (!mapUuid || !compositionId) return null
+    return Object.values(compositionsByMap[mapUuid] || {}).find((c) => c.id === compositionId)?.name || null
+  }
 
   const playedMatches = useMemo(
     () =>
@@ -68,10 +93,11 @@ export default function MatchCenter() {
   )
 
   const matchList = playedMatches
-
-  const compsForSelectedMap = useMemo(
-    () => (form.mapUuid ? getCompsForMap(compositionsByMap, form.mapUuid) : []),
-    [compositionsByMap, form.mapUuid]
+  // Seules les séries réellement terminées comptent dans le bilan
+  // global : un Bo3 mené 1-0 n'est pas encore une victoire.
+  const record = useMemo(
+    () => computeOverallRecord(playedMatches.filter(isSeriesDecided)),
+    [playedMatches]
   )
 
   const openCreatePlayed = () => {
@@ -93,83 +119,115 @@ export default function MatchCenter() {
     setFormMode(isMatchPlayed(match) ? 'played' : 'scheduled')
     setForm({
       opponentName: match.opponentName,
-      mapUuid: match.mapUuid,
-      compositionId: match.compositionId || '',
-      ourScore: match.ourScore === null || match.ourScore === undefined ? '' : String(match.ourScore),
-      opponentScore: match.opponentScore === null || match.opponentScore === undefined ? '' : String(match.opponentScore),
+      format: match.format,
       matchDate: match.matchDate || '',
       notes: match.notes || '',
+      maps: mapsToFormRows(match),
     })
     setFormOpen(true)
   }
 
-  // Bascule un match programmé vers "joué" : même formulaire, mais on
-  // force le mode 'played' pour faire apparaître les champs de score
-  // (qui valent '' puisque le match n'a pas encore de résultat).
+  // Bascule un match programmé (ou une série en cours) vers "joué" :
+  // même formulaire, mais on force le mode 'played' pour faire
+  // apparaître les champs de score des manches déjà choisies.
   const openFillResult = (match) => {
     setEditingId(match.id)
     setFormMode('played')
     setForm({
       opponentName: match.opponentName,
-      mapUuid: match.mapUuid,
-      compositionId: match.compositionId || '',
-      ourScore: '',
-      opponentScore: '',
+      format: match.format,
       matchDate: match.matchDate || '',
       notes: match.notes || '',
+      maps: mapsToFormRows(match),
     })
     setFormOpen(true)
   }
 
-  const handleMapChange = (mapUuid) => {
-    // Changer de map invalide la composition précédemment choisie
-    // (une composition est propre à une map).
-    setForm((f) => ({ ...f, mapUuid, compositionId: '' }))
+  const handleFormatChange = (newFormat) => {
+    setForm((f) => {
+      const maxMaps = FORMAT_META[newFormat].maxMaps
+      return { ...f, format: newFormat, maps: f.maps.length > maxMaps ? f.maps.slice(0, maxMaps) : f.maps }
+    })
+  }
+
+  const updateMapRow = (index, patch) => {
+    setForm((f) => ({ ...f, maps: f.maps.map((m, i) => (i === index ? { ...m, ...patch } : m)) }))
+  }
+
+  const handleMapUuidChange = (index, mapUuid) => {
+    // Changer de map invalide la composition précédemment choisie pour cette manche.
+    updateMapRow(index, { mapUuid, compositionId: '' })
+  }
+
+  const addMapRow = () => {
+    setForm((f) => (f.maps.length >= FORMAT_META[f.format].maxMaps ? f : { ...f, maps: [...f.maps, emptyMapRow()] }))
+  }
+
+  const removeMapRow = (index) => {
+    setForm((f) => (f.maps.length <= 1 ? f : { ...f, maps: f.maps.filter((_, i) => i !== index) }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.opponentName.trim() || !form.mapUuid) return
+    if (!form.opponentName.trim() || !form.maps[0]?.mapUuid) return
     if (formMode === 'scheduled' && !form.matchDate) return
+
+    const mapsPayload = form.maps
+      .filter((m) => m.mapUuid)
+      .map((m) => ({
+        mapUuid: m.mapUuid,
+        compositionId: m.compositionId || null,
+        ourScore: formMode === 'scheduled' || m.ourScore === '' ? null : Number(m.ourScore),
+        opponentScore: formMode === 'scheduled' || m.opponentScore === '' ? null : Number(m.opponentScore),
+      }))
 
     const payload = {
       opponentName: form.opponentName.trim(),
-      mapUuid: form.mapUuid,
-      compositionId: form.compositionId || null,
-      ourScore: formMode === 'scheduled' ? null : Number(form.ourScore) || 0,
-      opponentScore: formMode === 'scheduled' ? null : Number(form.opponentScore) || 0,
+      format: form.format,
       matchDate: form.matchDate || null,
       notes: form.notes.trim(),
     }
+
+    const formatLabel = FORMAT_META[form.format].label
+    const embedMaps = mapsPayload.map((m) => ({
+      mapName: mapByUuid.get(m.mapUuid)?.name || 'Map inconnue',
+      compositionName: compositionName(m.mapUuid, m.compositionId),
+      ourScore: m.ourScore,
+      opponentScore: m.opponentScore,
+    }))
+    const playedEmbedMaps = embedMaps.filter((m) => m.ourScore !== null && m.opponentScore !== null)
 
     // Notifications Discord "best effort" : ne bloquent jamais l'UI et
     // n'affichent pas d'erreur si elles échouent (webhook non configuré,
     // Discord injoignable…) — l'enregistrement a déjà réussi de toute façon.
     if (editingId) {
       const previousMatch = matches[editingId]
-      const resultJustFilled = previousMatch && !isMatchPlayed(previousMatch) && formMode === 'played'
-      await updateMatch(editingId, payload)
+      const willBePlayed = playedEmbedMaps.length > 0
+      const resultJustFilled = previousMatch && !isMatchPlayed(previousMatch) && formMode === 'played' && willBePlayed
+      await updateMatch(editingId, payload, mapsPayload)
       pushToast(resultJustFilled ? 'Résultat enregistré.' : 'Match mis à jour.', 'success')
       if (resultJustFilled && webhookUrl) {
         sendDiscordMessage(
           matchResultEmbed({
             opponentName: payload.opponentName,
-            ourScore: payload.ourScore,
-            opponentScore: payload.opponentScore,
-            mapName: mapByUuid.get(payload.mapUuid)?.name,
+            formatLabel,
+            seriesScore: formatSeriesScore({ format: form.format, maps: mapsPayload }),
+            result: computeMatchResult({ format: form.format, maps: mapsPayload }),
+            maps: playedEmbedMaps,
           })
         )
       }
     } else {
-      const id = await createMatch(payload)
+      const id = await createMatch(payload, mapsPayload)
       if (id && formMode === 'scheduled') {
         pushToast('Match programmé.', 'success')
         if (webhookUrl) {
           sendDiscordMessage(
             matchScheduledEmbed({
               opponentName: payload.opponentName,
+              formatLabel,
               matchDate: payload.matchDate,
-              mapName: mapByUuid.get(payload.mapUuid)?.name,
+              maps: embedMaps,
             })
           )
         }
@@ -179,9 +237,10 @@ export default function MatchCenter() {
           sendDiscordMessage(
             matchResultEmbed({
               opponentName: payload.opponentName,
-              ourScore: payload.ourScore,
-              opponentScore: payload.opponentScore,
-              mapName: mapByUuid.get(payload.mapUuid)?.name,
+              formatLabel,
+              seriesScore: formatSeriesScore({ format: form.format, maps: mapsPayload }),
+              result: computeMatchResult({ format: form.format, maps: mapsPayload }),
+              maps: playedEmbedMaps,
             })
           )
         }
@@ -202,7 +261,7 @@ export default function MatchCenter() {
         <div>
           <span className="home__eyebrow">Historique</span>
           <h1 className="match-center__title">Match Center</h1>
-          <p>Vos matchs à venir et l'historique de vos matchs joués : score, map, adversaire et composition utilisée.</p>
+          <p>Vos matchs à venir et l'historique de vos matchs joués, en Bo1, Bo3 ou Bo5 : score par manche, maps, adversaire et compositions utilisées.</p>
         </div>
         <div className="match-center__header-actions">
           {matchList.length > 0 && (
@@ -222,6 +281,27 @@ export default function MatchCenter() {
           )}
         </div>
       </div>
+
+      {status === 'ready' && matchList.length > 0 && (
+        <div className="dashboard__stat-grid match-center__record">
+          <div className="stat-card accent-card" style={{ '--accent-card-color': 'var(--role-sentinel)' }}>
+            <span className="stat-card__value">{record.wins}</span>
+            <span className="stat-card__label">Victoires</span>
+          </div>
+          <div className="stat-card accent-card" style={{ '--accent-card-color': 'var(--role-duelist)' }}>
+            <span className="stat-card__value">{record.losses}</span>
+            <span className="stat-card__label">Défaites</span>
+          </div>
+          <div className="stat-card accent-card" style={{ '--accent-card-color': 'var(--accent-amber)' }}>
+            <span className="stat-card__value">{record.winRate}%</span>
+            <span className="stat-card__label">Taux de victoire</span>
+          </div>
+          <div className="stat-card accent-card" style={{ '--accent-card-color': 'var(--text-tertiary)' }}>
+            <span className="stat-card__value">{record.played}</span>
+            <span className="stat-card__label">Séries terminées</span>
+          </div>
+        </div>
+      )}
 
       {status === 'loading' && (
         <div className="container">
@@ -244,10 +324,8 @@ export default function MatchCenter() {
           </div>
           <div className="upcoming-match-list">
             {upcomingMatches.map((match) => {
-              const map = mapByUuid.get(match.mapUuid)
-              const comp = match.compositionId
-                ? Object.values(compositionsByMap[match.mapUuid] || {}).find((c) => c.id === match.compositionId)
-                : null
+              const mapNames = match.maps.map((m) => mapByUuid.get(m.mapUuid)?.name).filter(Boolean)
+              const singleComp = match.maps.length === 1 ? compositionName(match.maps[0]?.mapUuid, match.maps[0]?.compositionId) : null
 
               return (
                 <div key={match.id} className="upcoming-match glass-panel">
@@ -263,8 +341,10 @@ export default function MatchCenter() {
                   <div className="upcoming-match__info">
                     <span className="upcoming-match__opponent">{match.opponentName}</span>
                     <span className="upcoming-match__meta">
-                      {map?.name || 'Map à définir'}
-                      {comp ? ` · ${comp.name}` : ''}
+                      <span className="upcoming-match__format">{FORMAT_META[match.format]?.label}</span>
+                      {' · '}
+                      {mapNames.join(', ') || 'Map à définir'}
+                      {singleComp ? ` · ${singleComp}` : ''}
                     </span>
                   </div>
                   {isAdmin && (
@@ -310,7 +390,7 @@ export default function MatchCenter() {
           {upcomingMatches.length > 0 && (
             <div className="match-center__section-header">
               <h2>Historique</h2>
-              <p>Matchs déjà joués.</p>
+              <p>Matchs déjà joués (ou en cours).</p>
             </div>
           )}
           <div className="match-history-table-shell">
@@ -320,21 +400,18 @@ export default function MatchCenter() {
               <tr>
                 <th>Résultat</th>
                 <th>Score</th>
-                <th>Map</th>
+                <th>Format</th>
+                <th>Manches</th>
                 <th>Adversaire</th>
-                <th>Composition</th>
                 <th>Date</th>
                 {isAdmin && <th aria-label="Actions" />}
               </tr>
             </thead>
             <tbody>
               {matchList.map((match) => {
+                const decided = isSeriesDecided(match)
                 const result = computeMatchResult(match)
-                const meta = MATCH_RESULT_META[result]
-                const map = mapByUuid.get(match.mapUuid)
-                const comp = match.compositionId
-                  ? Object.values(compositionsByMap[match.mapUuid] || {}).find((c) => c.id === match.compositionId)
-                  : null
+                const meta = decided ? MATCH_RESULT_META[result] : { label: 'En cours', color: 'var(--accent-amber)' }
 
                 return (
                   <tr key={match.id}>
@@ -343,17 +420,28 @@ export default function MatchCenter() {
                         {meta.label}
                       </span>
                     </td>
-                    <td className="match-history-table__score">
-                      {match.ourScore} – {match.opponentScore}
-                    </td>
+                    <td className="match-history-table__score">{formatSeriesScore(match)}</td>
+                    <td className="match-history-table__muted">{FORMAT_META[match.format]?.label}</td>
                     <td>
-                      <span className="match-history-table__map">
-                        {map?.thumbnail && <img src={map.thumbnail} alt="" />}
-                        {map?.name || 'Map inconnue'}
-                      </span>
+                      <div className="match-history-table__map-list">
+                        {match.maps.map((m) => {
+                          const map = mapByUuid.get(m.mapUuid)
+                          const comp = compositionName(m.mapUuid, m.compositionId)
+                          const played = m.ourScore !== null && m.ourScore !== undefined
+                          return (
+                            <span key={m.id} className="match-history-table__map">
+                              {map?.thumbnail && <img src={map.thumbnail} alt="" />}
+                              <span>
+                                {map?.name || 'Map inconnue'}
+                                {played && <span className="match-history-table__map-score"> {m.ourScore}:{m.opponentScore}</span>}
+                                {match.maps.length === 1 && comp && <span className="match-history-table__muted"> · {comp}</span>}
+                              </span>
+                            </span>
+                          )
+                        })}
+                      </div>
                     </td>
                     <td>{match.opponentName}</td>
-                    <td>{comp ? comp.name : <span className="match-history-table__muted">—</span>}</td>
                     <td className="match-history-table__muted">
                       {match.matchDate
                         ? new Date(match.matchDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -402,7 +490,7 @@ export default function MatchCenter() {
             onClick={() => setFormOpen(false)}
           >
             <motion.form
-              className="player-form glass-panel"
+              className="player-form glass-panel match-center__form"
               initial={{ opacity: 0, y: 16, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 32 } }}
               exit={{ opacity: 0, y: 10, scale: 0.98, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } }}
@@ -432,59 +520,102 @@ export default function MatchCenter() {
               </label>
 
               <label className="player-form__field">
-                <span>Map</span>
-                <select value={form.mapUuid} onChange={(e) => handleMapChange(e.target.value)} required>
-                  <option value="">Choisir une map…</option>
-                  {maps.map((m) => (
-                    <option key={m.uuid} value={m.uuid}>
-                      {m.name}
+                <span>Format</span>
+                <select value={form.format} onChange={(e) => handleFormatChange(e.target.value)}>
+                  {Object.entries(FORMAT_META).map(([value, meta]) => (
+                    <option key={value} value={value}>
+                      {meta.label} — {meta.maxMaps === 1 ? '1 map' : `jusqu'à ${meta.maxMaps} maps`}
                     </option>
                   ))}
                 </select>
               </label>
 
-              <label className="player-form__field">
-                <span>Composition utilisée (optionnel)</span>
-                <select
-                  value={form.compositionId}
-                  onChange={(e) => setForm((f) => ({ ...f, compositionId: e.target.value }))}
-                  disabled={!form.mapUuid}
-                >
-                  <option value="">Aucune / non renseignée</option>
-                  {compsForSelectedMap.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="match-center__map-rows">
+                {form.maps.map((mapRow, index) => {
+                  const compsForRow = mapRow.mapUuid ? getCompsForMap(compositionsByMap, mapRow.mapUuid) : []
+                  return (
+                    <div key={index} className="match-center__map-row">
+                      <div className="match-center__map-row-header">
+                        <span>Manche {index + 1}</span>
+                        {form.maps.length > 1 && (
+                          <button
+                            type="button"
+                            className="match-center__map-row-remove"
+                            onClick={() => removeMapRow(index)}
+                            aria-label={`Retirer la manche ${index + 1}`}
+                          >
+                            Retirer
+                          </button>
+                        )}
+                      </div>
 
-              {formMode === 'played' && (
-                <div className="match-center__form-row">
-                  <label className="player-form__field">
-                    <span>Notre score</span>
-                    <input
-                      type="number"
-                      min="0"
-                      required
-                      value={form.ourScore}
-                      onChange={(e) => setForm((f) => ({ ...f, ourScore: e.target.value }))}
-                      placeholder="13"
-                    />
-                  </label>
-                  <label className="player-form__field">
-                    <span>Score adverse</span>
-                    <input
-                      type="number"
-                      min="0"
-                      required
-                      value={form.opponentScore}
-                      onChange={(e) => setForm((f) => ({ ...f, opponentScore: e.target.value }))}
-                      placeholder="7"
-                    />
-                  </label>
-                </div>
-              )}
+                      <div className="match-center__form-row">
+                        <label className="player-form__field">
+                          <span>Map</span>
+                          <select
+                            value={mapRow.mapUuid}
+                            onChange={(e) => handleMapUuidChange(index, e.target.value)}
+                            required={index === 0}
+                          >
+                            <option value="">Choisir une map…</option>
+                            {maps.map((m) => (
+                              <option key={m.uuid} value={m.uuid}>
+                                {m.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="player-form__field">
+                          <span>Composition (optionnel)</span>
+                          <select
+                            value={mapRow.compositionId}
+                            onChange={(e) => updateMapRow(index, { compositionId: e.target.value })}
+                            disabled={!mapRow.mapUuid}
+                          >
+                            <option value="">Aucune / non renseignée</option>
+                            {compsForRow.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+
+                      {formMode === 'played' && (
+                        <div className="match-center__form-row">
+                          <label className="player-form__field">
+                            <span>Notre score</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={mapRow.ourScore}
+                              onChange={(e) => updateMapRow(index, { ourScore: e.target.value })}
+                              placeholder="13"
+                            />
+                          </label>
+                          <label className="player-form__field">
+                            <span>Score adverse</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={mapRow.opponentScore}
+                              onChange={(e) => updateMapRow(index, { opponentScore: e.target.value })}
+                              placeholder="7"
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {form.maps.length < FORMAT_META[form.format].maxMaps && (
+                  <button type="button" className="btn btn-ghost match-center__add-map" onClick={addMapRow}>
+                    + Ajouter une manche
+                  </button>
+                )}
+              </div>
 
               <label className="player-form__field">
                 <span>Date{formMode === 'played' ? ' (optionnel)' : ''}</span>

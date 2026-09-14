@@ -10,18 +10,7 @@
   position: relative;
   height: 320px;
   overflow: hidden;
-  /* Cadre tactique plus grand ici : la bannière est la pièce la plus
-     spectaculaire de la page, le cadre standard (14px) s'y perdrait.
-     Couleur au repos éclaircie : sur une photo sombre, le cyan translucide
-     standard devient quasi invisible — un blanc doux façon viseur photo
-     s'y détache bien mieux. */
-  --corner-size: 28px;
-  --frame-color: rgba(255, 255, 255, 0.55);
-}
-
-.editor__banner.corner-frame::before,
-.editor__banner.corner-frame::after {
-  border-width: 3px;
+  border-radius: var(--radius-lg);
 }
 
 .editor__banner-image {
@@ -35,8 +24,8 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(6, 9, 13, 0.55) 0%,
-    rgba(6, 9, 13, 0.35) 35%,
+    rgba(23, 15, 8, 0.5) 0%,
+    rgba(23, 15, 8, 0.3) 35%,
     var(--bg-base) 100%
   );
 }
@@ -53,7 +42,7 @@
 
 .editor__back {
   align-self: flex-start;
-  color: #ece8e1;
+  color: #faf3ea;
   margin-bottom: var(--space-3);
 }
 
@@ -63,16 +52,17 @@
 }
 
 .editor__title {
-  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-size: clamp(2.1rem, 5vw, 3.2rem);
+  font-weight: 700;
   color: #fff;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
 }
 
 .editor__count {
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-  color: rgba(236, 232, 225, 0.85);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  color: rgba(250, 243, 234, 0.85);
 }
 
 .editor__content {

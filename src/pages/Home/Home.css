@@ -9,38 +9,59 @@
 /* .home__eyebrow vit dans global.css (partagé par toutes les pages). */
 
 .home__title {
-  font-size: clamp(2rem, 5vw, 3.1rem);
-  line-height: 1.12;
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 6vw, 4rem);
+  line-height: 1.05;
   font-weight: 700;
   color: var(--text-primary);
+  text-wrap: balance;
 }
 
 .home__title-accent {
-  color: var(--brand-red);
+  background: linear-gradient(135deg, var(--brand-red) 0%, var(--accent-amber) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .home__subtitle {
-  font-size: 1.02rem;
+  font-size: 1.05rem;
   max-width: 560px;
 }
 
 .home__progress {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
   gap: 8px;
+  max-width: 420px;
 }
 
-.home__progress-value {
+.home__progress-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.home__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand-red) 0%, var(--accent-amber) 100%);
+  transition: width var(--dur-slow) var(--ease-spring);
+}
+
+.home__progress-text {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.home__progress-text strong {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.6rem;
+  font-size: 1.05rem;
   color: var(--text-primary);
-}
-
-.home__progress-label {
-  font-size: 0.86rem;
-  color: var(--text-tertiary);
 }
 
 .home__grid-section {
@@ -49,7 +70,7 @@
 
 .home__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-5);
 }
 

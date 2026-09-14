@@ -10,7 +10,7 @@
 // et canvas.toBlob() reste utilisable dans tous les cas.
 // ============================================================
 
-import { STATUS_META } from './storage'
+import { STATUS, STATUS_META } from './storage'
 
 const ROLE_COLORS = {
   Duelliste: '#ff5f6d',
@@ -21,6 +21,21 @@ const ROLE_COLORS = {
   Initiator: '#ffb54c',
   Sentinelle: '#3ddc97',
   Sentinel: '#3ddc97',
+}
+
+// STATUS_META[...].color est désormais une référence CSS (var(--role-*)),
+// utile partout ailleurs via style={{ '--accent-card-color': ... }} mais
+// inexploitable ici : un <canvas> ne fait pas partie de la cascade CSS de
+// la page, donc ctx.fillStyle/strokeStyle ne résout jamais un var(...), et
+// hexWithAlpha() ci-dessous attend un "#rrggbb" littéral à découper. On
+// garde donc une palette hex dédiée au rendu canvas, alignée sur les
+// valeurs de src/styles/variables.css (mêmes teintes que le reste de
+// l'app, juste dupliquées ici car le canvas ne peut pas lire les tokens).
+const STATUS_CANVAS_COLORS = {
+  [STATUS.VALIDATED]: '#2fd999',
+  [STATUS.TESTING]: '#ffb84d',
+  [STATUS.NEEDS_WORK]: '#ff6b57',
+  [STATUS.TODO]: '#d9c9b8',
 }
 
 function loadImage(src) {
@@ -95,6 +110,7 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
 
   // pastille de statut, en haut à droite
   const meta = STATUS_META[composition.status] || STATUS_META.todo
+  const statusColor = STATUS_CANVAS_COLORS[composition.status] || STATUS_CANVAS_COLORS[STATUS.TODO]
   const label = meta.label.toUpperCase()
   ctx.font = '700 12px Arial'
   const labelWidth = ctx.measureText(label).width
@@ -103,12 +119,12 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
   const pillX = W - 40 - pillW
   const pillY = 38
   roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2)
-  ctx.fillStyle = hexWithAlpha(meta.color, 0.14)
+  ctx.fillStyle = hexWithAlpha(statusColor, 0.14)
   ctx.fill()
-  ctx.strokeStyle = meta.color
+  ctx.strokeStyle = statusColor
   ctx.lineWidth = 1
   ctx.stroke()
-  ctx.fillStyle = meta.color
+  ctx.fillStyle = statusColor
   ctx.beginPath()
   ctx.arc(pillX + 18, pillY + pillH / 2, 4, 0, Math.PI * 2)
   ctx.fill()

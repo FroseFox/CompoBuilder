@@ -13,6 +13,7 @@ import { ToastProvider } from './context/ToastContext'
 import { useGameDataSync } from './hooks/useGameDataSync'
 import { isSupabaseConfigured } from './services/supabaseClient'
 import Navbar from './components/Navbar/Navbar'
+import RouteProgress from './components/RouteProgress/RouteProgress'
 import PageTransition from './components/PageTransition/PageTransition'
 import Loader from './components/Loader/Loader'
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
@@ -70,6 +71,7 @@ function AppShell() {
           query CSS prefers-reduced-motion ne couvre pas ces animations
           pilotées en JS, d'où ce réglage complémentaire. */}
       <MotionConfig reducedMotion="user">
+        <RouteProgress />
         <div className="app-layout">
           <Navbar />
           <div className="app-layout__main">

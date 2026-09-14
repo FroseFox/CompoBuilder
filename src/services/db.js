@@ -56,18 +56,32 @@ export async function upsertAgents(agents) {
   if (error) throw error
 }
 
-function rowToMatch(row) {
+/** Une manche (une map jouée) au sein d'un match — voir match_maps en base. */
+function rowToMatchMap(row) {
   return {
     id: row.id,
-    opponentName: row.opponent_name,
+    matchId: row.match_id,
+    position: row.position,
     mapUuid: row.map_uuid,
     compositionId: row.composition_id,
     ourScore: row.our_score,
     opponentScore: row.opponent_score,
+  }
+}
+
+function rowToMatch(row) {
+  return {
+    id: row.id,
+    opponentName: row.opponent_name,
+    format: row.format,
     matchDate: row.match_date,
     notes: row.notes,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
+    // Présent seulement quand la ligne vient d'un select avec la
+    // ressource imbriquée match_maps(*) — voir fetchMatches/
+    // fetchMatchWithMaps. Trié par position (ordre des manches).
+    maps: (row.match_maps || []).map(rowToMatchMap).sort((a, b) => a.position - b.position),
   }
 }
 
@@ -161,47 +175,90 @@ export async function deleteAllCompositions() {
 }
 
 // ---------- Match Center ----------
+//
+// Un match est une série (format Bo1/Bo3/Bo5) ; ses manches (une par
+// map jouée, chacune avec sa propre composition et son propre score)
+// vivent dans match_maps, embarquées ici via la syntaxe PostgREST
+// `match_maps(*)`. insertMatch/updateMatchRow acceptent un second
+// paramètre `mapsDraft` (tableau de manches) — remplacé en bloc plutôt
+// que diffé manche par manche, plus simple et le formulaire renvoie de
+// toute façon l'état complet à chaque sauvegarde.
+
+const MATCH_SELECT = '*, match_maps(*)'
 
 export async function fetchMatches() {
-  const { data, error } = await supabase.from('matches').select('*')
+  const { data, error } = await supabase
+    .from('matches')
+    .select(MATCH_SELECT)
+    .order('position', { foreignTable: 'match_maps' })
   if (error) throw error
   return data.map(rowToMatch)
 }
 
-export async function insertMatch(draft) {
+/** Recharge un match précis avec ses manches — utilisé après une
+ * écriture (insert/update) et pour resynchroniser le temps réel. */
+export async function fetchMatchWithMaps(id) {
+  const { data, error } = await supabase
+    .from('matches')
+    .select(MATCH_SELECT)
+    .eq('id', id)
+    .order('position', { foreignTable: 'match_maps' })
+    .single()
+  if (error) throw error
+  return rowToMatch(data)
+}
+
+/** Remplace toutes les manches d'un match par `mapsDraft` (delete + insert en bloc). */
+async function replaceMatchMaps(matchId, mapsDraft) {
+  const { error: delError } = await supabase.from('match_maps').delete().eq('match_id', matchId)
+  if (delError) throw delError
+  if (!mapsDraft || mapsDraft.length === 0) return
+
+  const rows = mapsDraft.map((m, index) => ({
+    match_id: matchId,
+    position: index,
+    map_uuid: m.mapUuid || null,
+    composition_id: m.compositionId || null,
+    our_score: m.ourScore === '' || m.ourScore === undefined ? null : m.ourScore,
+    opponent_score: m.opponentScore === '' || m.opponentScore === undefined ? null : m.opponentScore,
+  }))
+  const { error } = await supabase.from('match_maps').insert(rows)
+  if (error) throw error
+}
+
+export async function insertMatch(draft, mapsDraft = []) {
   const { data, error } = await supabase
     .from('matches')
     .insert({
       opponent_name: draft.opponentName,
-      map_uuid: draft.mapUuid,
-      composition_id: draft.compositionId || null,
-      our_score: draft.ourScore,
-      opponent_score: draft.opponentScore,
+      format: draft.format || 'bo1',
       match_date: draft.matchDate || null,
       notes: draft.notes || '',
     })
     .select()
     .single()
   if (error) throw error
-  return rowToMatch(data)
+  await replaceMatchMaps(data.id, mapsDraft)
+  return fetchMatchWithMaps(data.id)
 }
 
-export async function updateMatchRow(id, patch) {
+export async function updateMatchRow(id, patch, mapsDraft) {
   const dbPatch = { updated_at: new Date().toISOString() }
   if ('opponentName' in patch) dbPatch.opponent_name = patch.opponentName
-  if ('mapUuid' in patch) dbPatch.map_uuid = patch.mapUuid
-  if ('compositionId' in patch) dbPatch.composition_id = patch.compositionId
-  if ('ourScore' in patch) dbPatch.our_score = patch.ourScore
-  if ('opponentScore' in patch) dbPatch.opponent_score = patch.opponentScore
+  if ('format' in patch) dbPatch.format = patch.format
   if ('matchDate' in patch) dbPatch.match_date = patch.matchDate
   if ('notes' in patch) dbPatch.notes = patch.notes
 
-  const { data, error } = await supabase.from('matches').update(dbPatch).eq('id', id).select().single()
+  const { error } = await supabase.from('matches').update(dbPatch).eq('id', id)
   if (error) throw error
-  return rowToMatch(data)
+  // mapsDraft absent (undefined) = les manches ne changent pas pour cet
+  // appel (ex. un simple renommage) ; un tableau, même vide, remplace.
+  if (mapsDraft !== undefined) await replaceMatchMaps(id, mapsDraft)
+  return fetchMatchWithMaps(id)
 }
 
 export async function deleteMatchRow(id) {
+  // match_maps se supprime en cascade (on delete cascade en base).
   const { error } = await supabase.from('matches').delete().eq('id', id)
   if (error) throw error
 }
@@ -239,4 +296,4 @@ export async function updateTeamSettingsRow(patch) {
   return rowToTeamSettings(data)
 }
 
-export { rowToComposition, rowToPlayer, rowToMatch }
+export { rowToComposition, rowToPlayer, rowToMatch, rowToMatchMap }

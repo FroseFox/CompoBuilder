@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import RoleBadge from '../RoleBadge/RoleBadge'
 import PlayerSelect from '../PlayerSelect/PlayerSelect'
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
+import { playSound } from '../../utils/sound'
 import './AgentSlot.css'
 
 export default function AgentSlot({
@@ -48,6 +49,7 @@ export default function AgentSlot({
     const fromIndex = Number(e.dataTransfer.getData('text/plain'))
     if (!Number.isNaN(fromIndex) && fromIndex !== index) {
       onReorder(fromIndex, index)
+      playSound('drop')
     }
   }
 

@@ -4,46 +4,44 @@ import { motion } from 'framer-motion'
 import { useMatches } from '../../context/MatchesContext'
 import { useData } from '../../context/DataContext'
 import { useCompositions } from '../../context/CompositionsContext'
-import { usePlayers } from '../../context/PlayersContext'
 import {
   computeOverallRecord,
   computeMapStats,
   computeCompositionStatsByMap,
-  computeOpponentStats,
-  computePlayerStats,
+  formatSeriesScore,
   getRecentForm,
   computeMatchResult,
   isMatchPlayed,
+  isSeriesDecided,
   MATCH_RESULT_META,
 } from '../../utils/matches'
 import ProgressBar from '../../components/ProgressBar/ProgressBar'
-import PlayerAvatar from '../../components/PlayerAvatar/PlayerAvatar'
 import Loader from '../../components/Loader/Loader'
 import CountUp from '../../components/CountUp/CountUp'
 import './Stats.css'
 
 export default function Stats() {
   const { matches, status } = useMatches()
-  const { maps, agents } = useData()
+  const { maps } = useData()
   const { compositionsByMap } = useCompositions()
-  const { players } = usePlayers()
 
   // Seuls les matchs joués comptent dans les statistiques — un match
   // programmé (à venir, sans score) fausserait les taux de victoire.
+  // Chaque manche jouée alimente aussitôt les stats par map/composition
+  // (computeMapStats/computeCompositionStatsByMap raisonnent manche par
+  // manche), mais le bilan global et la forme récente ne comptent que
+  // les séries réellement terminées (une Bo3 menée 1-0 n'est ni une
+  // victoire ni une défaite tant qu'elle n'est pas jouée jusqu'au bout).
   const matchList = useMemo(() => Object.values(matches).filter(isMatchPlayed), [matches])
+  const decidedMatches = useMemo(() => matchList.filter(isSeriesDecided), [matchList])
 
-  const overall = useMemo(() => computeOverallRecord(matchList), [matchList])
+  const overall = useMemo(() => computeOverallRecord(decidedMatches), [decidedMatches])
   const mapStats = useMemo(() => computeMapStats(matchList, maps), [matchList, maps])
   const compStatsByMap = useMemo(
     () => computeCompositionStatsByMap(matchList, compositionsByMap, maps),
     [matchList, compositionsByMap, maps]
   )
-  const opponentStats = useMemo(() => computeOpponentStats(matchList), [matchList])
-  const playerStats = useMemo(
-    () => computePlayerStats(matchList, compositionsByMap, players, agents),
-    [matchList, compositionsByMap, players, agents]
-  )
-  const recentForm = useMemo(() => getRecentForm(matchList, 8), [matchList])
+  const recentForm = useMemo(() => getRecentForm(decidedMatches, 8), [decidedMatches])
 
   if (status === 'loading') {
     return (
@@ -102,7 +100,7 @@ export default function Stats() {
                 key={match.id}
                 className="stats-form-chip"
                 style={{ '--result-color': meta.color }}
-                title={`${match.opponentName} · ${match.ourScore}-${match.opponentScore}`}
+                title={`${match.opponentName} · ${formatSeriesScore(match)}`}
                 initial={{ opacity: 0, scale: 0.6 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.25, delay: index * 0.04, type: 'spring', stiffness: 400, damping: 24 }}
@@ -192,73 +190,6 @@ export default function Stats() {
         )}
       </section>
 
-      <section className="stats-section">
-        <div className="editor__section-header">
-          <h2>Performance par joueur</h2>
-          <p>Taux de victoire de chaque joueur sur les matchs où il faisait partie de la composition utilisée.</p>
-        </div>
-        {playerStats.length === 0 ? (
-          <div className="stats-page__empty glass-panel">
-            <p>Aucun joueur n'apparaît encore dans un match avec une composition assignée.</p>
-          </div>
-        ) : (
-          <div className="stats-page__list">
-            {playerStats.map((p, index) => (
-              <motion.div
-                key={p.playerId}
-                className="stats-row stats-row--player glass-panel"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.3), ease: [0.16, 1, 0.3, 1] }}
-              >
-                <div className="stats-row__label">
-                  <PlayerAvatar player={p.player} size="sm" />
-                  <span>
-                    {p.player.pseudo}
-                    {p.topAgent && <span className="stats-row__caption"> · joue souvent {p.topAgent.name}</span>}
-                  </span>
-                </div>
-                <span className="stats-row__record">
-                  {p.wins}V – {p.losses}D{p.draws > 0 ? ` – ${p.draws}N` : ''}
-                </span>
-                <div className="stats-row__bar">
-                  <ProgressBar percent={p.winRate} />
-                </div>
-                <span className="stats-row__percent">{p.winRate}%</span>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="stats-section">
-        <div className="editor__section-header">
-          <h2>Face à chaque adversaire</h2>
-          <p>Votre bilan contre les équipes les plus rencontrées.</p>
-        </div>
-        <div className="stats-page__list">
-          {opponentStats.map((s, index) => (
-            <motion.div
-              key={s.opponentName}
-              className="stats-row glass-panel"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.3), ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div className="stats-row__label">
-                <span>{s.opponentName}</span>
-              </div>
-              <span className="stats-row__record">
-                {s.wins}V – {s.losses}D{s.draws > 0 ? ` – ${s.draws}N` : ''}
-              </span>
-              <div className="stats-row__bar">
-                <ProgressBar percent={s.winRate} />
-              </div>
-              <span className="stats-row__percent">{s.winRate}%</span>
-            </motion.div>
-          ))}
-        </div>
-      </section>
     </main>
   )
 }

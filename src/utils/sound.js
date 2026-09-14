@@ -131,6 +131,18 @@ export function playSound(name) {
         noiseTick({ freq: 3000, duration: 0.018, gain: 0.03 })
         softTone({ freq: 620, duration: 0.05, gain: 0.024, lowpass: 2000 })
         break
+      case 'delete':
+        // Thud grave et bref : distinct du "error" (qui glisse), pour une
+        // action volontaire et destructive plutôt qu'un échec.
+        softTone({ freq: 200, duration: 0.14, gain: 0.05, glideTo: 90, lowpass: 700 })
+        noiseTick({ freq: 500, duration: 0.03, gain: 0.025, delay: 0.01 })
+        break
+      case 'drop':
+        // Petit "clac" mécanique pour un dépose de glisser-déposer réussi
+        // (réorganisation des slots d'agents) — plus sec qu'un "click".
+        noiseTick({ freq: 1800, duration: 0.02, gain: 0.04 })
+        softTone({ freq: 180, duration: 0.06, gain: 0.03, glideTo: 130, lowpass: 900 })
+        break
       default:
         break
     }

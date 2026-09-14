@@ -24,25 +24,35 @@
   margin-bottom: var(--space-5);
 }
 
-.team-page__filter {
-  margin-bottom: var(--space-4);
+/* Cartes de rôle cliquables : servent à la fois de légende chiffrée et de
+   filtre (cliquer une carte isole ce rôle, la re-cliquer réinitialise) —
+   remplace le menu déroulant précédent, redondant avec ces mêmes chiffres. */
+.team-page__stat-btn {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-.team-page__filter label {
+.team-page__stat-btn--active {
+  border-color: var(--accent-card-color);
+  background: color-mix(in srgb, var(--accent-card-color) 10%, var(--bg-panel-solid));
+  box-shadow: 0 0 0 1px var(--accent-card-color);
+}
+
+.team-page__stat-btn--active::before {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+.team-page__filter {
+  margin-bottom: var(--space-4);
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.team-page__filter select {
-  padding: 8px 30px 8px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-hover);
-  color: var(--text-primary);
   font-size: 0.82rem;
+  color: var(--text-secondary);
 }
 
 .team-page__empty {
@@ -67,6 +77,7 @@
 }
 
 .player-card {
+  position: relative;
   padding: var(--space-4);
   display: flex;
   align-items: center;

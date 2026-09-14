@@ -74,9 +74,14 @@ export default function Home() {
         </p>
         {status === 'ready' && maps.length > 0 && (
           <div className="home__progress">
-            <span className="home__progress-value">{totalComplete}</span>
-            <span className="home__progress-label">
-              / {maps.length} maps avec une composition complète
+            <div className="home__progress-bar">
+              <div
+                className="home__progress-fill"
+                style={{ width: `${maps.length ? (totalComplete / maps.length) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="home__progress-text">
+              <strong>{totalComplete}</strong> / {maps.length} maps avec une composition complète
             </span>
           </div>
         )}

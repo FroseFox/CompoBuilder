@@ -1,13 +1,17 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { StatusDot } from '../StatusBadge/StatusBadge'
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
 import { formatRelativeDate } from '../../utils/compositions'
+import { STATUS_META } from '../../utils/storage'
 import './MapCard.css'
 
 export default function MapCard({ map, summary, players, index = 0 }) {
   const { filledCount, status, lastModified, compsCount, mainComp } = summary
   const isComplete = filledCount === 5
+  const [loaded, setLoaded] = useState(false)
+  const accentColor = STATUS_META[status]?.color || 'var(--text-tertiary)'
 
   const assignedPlayers = mainComp
     ? mainComp.slots
@@ -21,18 +25,29 @@ export default function MapCard({ map, summary, players, index = 0 }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.4), ease: [0.16, 1, 0.3, 1] }}
     >
-      <Link to={`/editor/${map.uuid}`} className="map-card glass-panel corner-frame">
+      <Link
+        to={`/editor/${map.uuid}`}
+        className="map-card glass-panel accent-card"
+        style={{ '--accent-card-color': accentColor }}
+      >
         <div className="map-card__image-wrap">
-          {/* La vignette utilise le petit "listViewIcon" de l'API, pas le
-              splash plein format (bien plus lourd, pensé pour une bannière
-              pleine largeur) — ça évite de télécharger une image géante
-              pour l'afficher dans une carte de quelques centimètres. */}
+          {/* Fond flouté immédiat à partir de la petite vignette (déjà en
+              cache la plupart du temps), pendant que l'image nette pleine
+              qualité (splash) charge par-dessus puis apparaît en fondu —
+              net et rapide à l'affichage, plutôt que net-mais-lent ou
+              rapide-mais-flou. */}
+          <div
+            className="map-card__image-placeholder"
+            style={{ backgroundImage: `url(${map.thumbnail})` }}
+            aria-hidden="true"
+          />
           <img
-            src={map.thumbnail || map.image}
+            src={map.image}
             alt=""
             loading="lazy"
             decoding="async"
-            className="map-card__image"
+            className={`map-card__image ${loaded ? 'map-card__image--loaded' : ''}`}
+            onLoad={() => setLoaded(true)}
           />
           <div className="map-card__scrim" />
           <span className={`map-card__count ${isComplete ? 'map-card__count--full' : ''}`}>

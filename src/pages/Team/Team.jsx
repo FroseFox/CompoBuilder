@@ -13,6 +13,18 @@ import './Team.css'
 
 const emptyForm = { pseudo: '', primaryRole: '', secondaryRole: '', color: PLAYER_COLORS[0] }
 
+const ROLE_ACCENT = {
+  Duelist: 'var(--role-duelist)',
+  Duelliste: 'var(--role-duelist)',
+  Controller: 'var(--role-controller)',
+  Contrôleur: 'var(--role-controller)',
+  Initiator: 'var(--role-initiator)',
+  Initiateur: 'var(--role-initiator)',
+  Sentinel: 'var(--role-sentinel)',
+  Sentinelle: 'var(--role-sentinel)',
+  Flex: 'var(--role-flex)',
+}
+
 export default function Team() {
   const { agents } = useData()
   const { players, addPlayer, updatePlayer, deletePlayer } = usePlayers()
@@ -124,27 +136,27 @@ export default function Team() {
       {playerList.length > 0 && (
         <div className="dashboard__stat-grid team-page__stats">
           {roles.map((r) => (
-            <div key={r.name} className="stat-card">
+            <button
+              key={r.name}
+              type="button"
+              className={`stat-card accent-card team-page__stat-btn ${roleFilter === r.name ? 'team-page__stat-btn--active' : ''}`}
+              style={{ '--accent-card-color': ROLE_ACCENT[r.name] || 'var(--brand-red)' }}
+              onClick={() => setRoleFilter((prev) => (prev === r.name ? 'all' : r.name))}
+              aria-pressed={roleFilter === r.name}
+            >
               <span className="stat-card__value">{roleCounts.get(r.name) || 0}</span>
               <span className="stat-card__label">{r.name}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}
 
-      {playerList.length > 0 && (
+      {playerList.length > 0 && roleFilter !== 'all' && (
         <div className="team-page__filter">
-          <label>
-            <span>Filtrer par rôle</span>
-            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-              <option value="all">Tous les rôles</option>
-              {roles.map((r) => (
-                <option key={r.name} value={r.name}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <span>Filtré sur « {roleFilter} »</span>
+          <button className="btn btn-ghost" onClick={() => setRoleFilter('all')}>
+            Réinitialiser
+          </button>
         </div>
       )}
 
@@ -162,8 +174,8 @@ export default function Team() {
             {visiblePlayers.map((player, index) => (
               <motion.div
                 key={player.id}
-                className="player-card glass-panel corner-frame"
-                layout
+                className="player-card glass-panel accent-card"
+                style={{ '--accent-card-color': player.color || 'var(--brand-red)' }}
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}

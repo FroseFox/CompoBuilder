@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useSettings } from '../../context/SettingsContext'
 import { getCompsForMap } from '../../utils/compositions'
+import { STATUS_META } from '../../utils/storage'
 import { sendDiscordMessage, compositionValidatedEmbed } from '../../utils/discordWebhook'
 import AgentSlot from '../../components/AgentSlot/AgentSlot'
 import AgentSelectionModal from '../../components/AgentSelectionModal/AgentSelectionModal'
@@ -155,7 +156,10 @@ export default function Editor() {
 
   return (
     <main className="editor">
-      <div className="editor__banner corner-frame">
+      <div
+        className="editor__banner accent-bar-static"
+        style={composition ? { '--accent-card-color': STATUS_META[composition.status]?.color } : undefined}
+      >
         <img src={map?.image} alt="" className="editor__banner-image" />
         <div className="editor__banner-scrim" />
         <div className="container editor__banner-content">

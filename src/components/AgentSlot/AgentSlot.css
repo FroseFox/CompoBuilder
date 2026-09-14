@@ -130,14 +130,14 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  background: linear-gradient(180deg, transparent, rgba(6, 9, 13, 0.86) 55%);
+  background: linear-gradient(180deg, transparent, rgba(23, 15, 8, 0.88) 55%);
 }
 
 .agent-slot__name {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 0.86rem;
-  color: #ece8e1;
+  font-size: 0.95rem;
+  color: #faf3ea;
 }
 
 .agent-slot__info .player-select {
@@ -155,9 +155,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(10, 14, 20, 0.6);
-  color: #ece8e1;
+  border: 1px solid rgba(255, 240, 225, 0.18);
+  background: rgba(23, 15, 8, 0.65);
+  color: #faf3ea;
   opacity: 0;
   transform: scale(0.85);
   transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out),

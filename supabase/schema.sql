@@ -66,16 +66,18 @@ create index if not exists compositions_map_uuid_idx on public.compositions (map
 -- ---------- Matches (Centre de match / Stats) ----------
 -- Utilisée par la fonctionnalité "Match Center" / "Stats" déployée sur le
 -- site (gh-pages), historiquement absente du code source versionné.
+--
+-- Un match est une série (format Bo1/Bo3/Bo5) : la ou les maps jouées,
+-- avec leur propre composition et leur propre score, vivent dans
+-- match_maps ci-dessous — pas ici. Le score affiché pour le match
+-- (ex. "2 – 1") est calculé côté client à partir du nombre de manches
+-- gagnées par chaque équipe (voir computeMatchResult dans
+-- src/utils/matches.js), pas stocké.
 
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
   opponent_name text not null,
-  map_uuid text not null references public.maps(uuid),
-  composition_id uuid references public.compositions(id) on delete set null,
-  -- NULL sur les deux colonnes = match "programmé" (à venir), pas
-  -- encore joué : voir isMatchPlayed() dans src/utils/matches.js.
-  our_score integer,
-  opponent_score integer,
+  format text not null default 'bo1' check (format in ('bo1', 'bo3', 'bo5')),
   match_date date,
   notes text not null default '',
   position integer not null default 0,
@@ -84,8 +86,25 @@ create table if not exists public.matches (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists matches_map_uuid_idx on public.matches (map_uuid);
-create index if not exists matches_composition_id_idx on public.matches (composition_id);
+-- Une manche par map jouée dans le match. NULL sur les deux scores =
+-- manche "programmée" (map choisie, pas encore jouée) — voir
+-- isMatchPlayed() dans src/utils/matches.js.
+create table if not exists public.match_maps (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references public.matches(id) on delete cascade,
+  position integer not null default 0,
+  map_uuid text references public.maps(uuid),
+  composition_id uuid references public.compositions(id) on delete set null,
+  our_score integer,
+  opponent_score integer,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (match_id, position)
+);
+
+create index if not exists match_maps_match_id_idx on public.match_maps (match_id);
+create index if not exists match_maps_map_uuid_idx on public.match_maps (map_uuid);
+create index if not exists match_maps_composition_id_idx on public.match_maps (composition_id);
 
 -- ---------- Profils utilisateurs (admin ou non) ----------
 -- Une ligne est créée automatiquement pour chaque nouveau compte
@@ -131,6 +150,7 @@ alter table public.agents enable row level security;
 alter table public.players enable row level security;
 alter table public.compositions enable row level security;
 alter table public.matches enable row level security;
+alter table public.match_maps enable row level security;
 alter table public.profiles enable row level security;
 
 -- Lecture publique (y compris sans être connecté)
@@ -148,6 +168,9 @@ create policy "Lecture publique compositions" on public.compositions for select 
 
 drop policy if exists "Lecture publique matches" on public.matches;
 create policy "Lecture publique matches" on public.matches for select using (true);
+
+drop policy if exists "Lecture publique match_maps" on public.match_maps;
+create policy "Lecture publique match_maps" on public.match_maps for select using (true);
 
 -- Un utilisateur connecté peut lire sa propre ligne de profil (utilisé
 -- par l'app pour savoir si la personne connectée est admin).
@@ -206,6 +229,15 @@ create policy "Modification admin matches" on public.matches for update
 create policy "Suppression admin matches" on public.matches for delete
   using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
+drop policy if exists "Ecriture admin match_maps" on public.match_maps;
+create policy "Ecriture admin match_maps" on public.match_maps for insert
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Modification admin match_maps" on public.match_maps for update
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+create policy "Suppression admin match_maps" on public.match_maps for delete
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+
 -- ---------- Réglages d'équipe (webhook Discord) ----------
 -- Table à une seule ligne (singleton, via la contrainte sur `id`).
 -- Lecture ET écriture réservées aux admins : contrairement aux autres
@@ -238,6 +270,7 @@ create policy "Modification admin team_settings" on public.team_settings for upd
 alter publication supabase_realtime add table public.compositions;
 alter publication supabase_realtime add table public.players;
 alter publication supabase_realtime add table public.matches;
+alter publication supabase_realtime add table public.match_maps;
 
 -- ============================================================
 -- Dernière étape manuelle (à faire une seule fois) :

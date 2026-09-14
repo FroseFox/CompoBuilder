@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../services/supabaseClient'
-import { deleteMatchRow, fetchMatches, insertMatch, rowToMatch, updateMatchRow } from '../services/db'
+import { deleteMatchRow, fetchMatches, fetchMatchWithMaps, insertMatch, updateMatchRow } from '../services/db'
 import { useToast } from './ToastContext'
 
 const MatchesContext = createContext(null)
@@ -43,19 +43,41 @@ export function MatchesProvider({ children }) {
     }
   }, [])
 
+  // Recharge un match précis (avec ses manches) suite à un évènement
+  // temps réel — un payload postgres_changes ne contient que les
+  // colonnes de LA table concernée, jamais la ressource imbriquée
+  // match_maps(*) : impossible de reconstituer un match complet à
+  // partir du seul payload, d'où ce refetch ciblé. Le match a pu
+  // disparaître entre-temps (ex. suppression en cascade des manches
+  // d'un match lui-même supprimé) : on ignore alors silencieusement.
+  const refreshMatch = useCallback(
+    async (matchId) => {
+      if (!matchId) return
+      try {
+        mergeMatch(await fetchMatchWithMaps(matchId))
+      } catch {
+        // Le match n'existe plus (déjà supprimé) — rien à synchroniser.
+      }
+    },
+    [mergeMatch]
+  )
+
   // Synchronisation temps réel entre tous les membres connectés.
   useEffect(() => {
     const channel = supabase
       .channel('matches-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, (p) => mergeMatch(rowToMatch(p.new)))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, (p) => mergeMatch(rowToMatch(p.new)))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, (p) => refreshMatch(p.new.id))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, (p) => refreshMatch(p.new.id))
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'matches' }, (p) => removeMatchFromState(p.old.id))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'match_maps' }, (p) => refreshMatch(p.new.match_id))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_maps' }, (p) => refreshMatch(p.new.match_id))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'match_maps' }, (p) => refreshMatch(p.old.match_id))
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [mergeMatch, removeMatchFromState])
+  }, [refreshMatch, removeMatchFromState])
 
   const handleError = useCallback(
     (err, fallbackMessage) => {
@@ -70,9 +92,9 @@ export function MatchesProvider({ children }) {
   )
 
   const createMatch = useCallback(
-    async (draft) => {
+    async (draft, mapsDraft) => {
       try {
-        const match = await insertMatch(draft)
+        const match = await insertMatch(draft, mapsDraft)
         mergeMatch(match)
         return match.id
       } catch (err) {
@@ -83,10 +105,12 @@ export function MatchesProvider({ children }) {
     [mergeMatch, handleError]
   )
 
+  // mapsDraft omis (undefined) = les manches ne changent pas (ex. un
+  // simple renommage d'adversaire) ; un tableau, même vide, les remplace.
   const updateMatch = useCallback(
-    async (id, patch) => {
+    async (id, patch, mapsDraft) => {
       try {
-        const updated = await updateMatchRow(id, patch)
+        const updated = await updateMatchRow(id, patch, mapsDraft)
         mergeMatch(updated)
       } catch (err) {
         handleError(err, 'Impossible de mettre à jour ce match.')

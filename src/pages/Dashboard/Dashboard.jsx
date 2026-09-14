@@ -119,21 +119,24 @@ export default function Dashboard() {
           index={0}
           title="À retravailler"
           emoji={STATUS_META[STATUS.NEEDS_WORK].emoji}
+          color={STATUS_META[STATUS.NEEDS_WORK].color}
           maps={mapsByBucket[STATUS.NEEDS_WORK]}
         />
         <MapBucketList
           index={1}
           title="En test"
           emoji={STATUS_META[STATUS.TESTING].emoji}
+          color={STATUS_META[STATUS.TESTING].color}
           maps={mapsByBucket[STATUS.TESTING]}
         />
         <MapBucketList
           index={2}
           title="À faire"
           emoji={STATUS_META[STATUS.TODO].emoji}
+          color={STATUS_META[STATUS.TODO].color}
           maps={mapsByBucket[STATUS.TODO]}
         />
-        <MapBucketList index={3} title="Sans composition" emoji="⬜" maps={mapsByBucket.empty} />
+        <MapBucketList index={3} title="Sans composition" emoji="⬜" color="var(--text-tertiary)" maps={mapsByBucket.empty} />
       </div>
     </main>
   )
@@ -159,10 +162,11 @@ function StatCard({ value, label, tone, icon, index = 0 }) {
   )
 }
 
-function MapBucketList({ title, emoji, maps, index = 0 }) {
+function MapBucketList({ title, emoji, maps, color, index = 0 }) {
   return (
     <motion.div
-      className="dashboard__bucket glass-panel"
+      className="dashboard__bucket glass-panel accent-bar-static"
+      style={{ '--accent-card-color': color }}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, delay: 0.15 + index * 0.06, ease: [0.16, 1, 0.3, 1] }}

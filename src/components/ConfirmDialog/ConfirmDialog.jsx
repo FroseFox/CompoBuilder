@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { playSound } from '../../utils/sound'
 import './ConfirmDialog.css'
 
 const panelVariants = {
@@ -17,6 +18,11 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }) {
+  const handleConfirm = () => {
+    if (danger) playSound('delete')
+    onConfirm()
+  }
+
   return (
     <AnimatePresence>
       {open && (
@@ -47,7 +53,7 @@ export default function ConfirmDialog({
               </button>
               <button
                 className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
-                onClick={onConfirm}
+                onClick={handleConfirm}
                 autoFocus
               >
                 {confirmLabel}

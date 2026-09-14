@@ -27,6 +27,10 @@
   gap: var(--space-3);
 }
 
+.match-center__record {
+  margin-bottom: var(--space-6);
+}
+
 /* ---------- Matchs à venir ---------- */
 
 .match-center__section-header {
@@ -96,6 +100,12 @@
   color: var(--text-tertiary);
 }
 
+.upcoming-match__format {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
 .upcoming-match__actions {
   display: flex;
   align-items: center;
@@ -135,6 +145,60 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+}
+
+/* Formulaire de match : plus large que le player-form générique
+   (420px) pour laisser respirer les manches à 2 colonnes. */
+.match-center__form {
+  max-width: 560px;
+}
+
+.match-center__map-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.match-center__map-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+}
+
+.match-center__map-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.match-center__map-row-remove {
+  border: none;
+  background: transparent;
+  color: var(--brand-red);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 4px;
+}
+
+.match-center__map-row-remove:hover {
+  text-decoration: underline;
+}
+
+.match-center__add-map {
+  align-self: flex-start;
 }
 
 /* ---------- Tableau d'historique ---------- */
@@ -216,6 +280,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Une série Bo3/Bo5 empile plusieurs manches dans la même cellule ; en
+   Bo1 la liste ne contient qu'une seule ligne (rendu identique à avant). */
+.match-history-table__map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  white-space: normal;
+}
+
 .match-history-table__map {
   display: flex;
   align-items: center;
@@ -228,6 +301,11 @@
   object-fit: cover;
   border-radius: 4px;
   flex-shrink: 0;
+}
+
+.match-history-table__map-score {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
 }
 
 .match-history-table__muted {

@@ -43,18 +43,53 @@ export async function sendDiscordMessage(payload, { testUrl } = {}) {
   }
 }
 
-export function matchResultEmbed({ opponentName, ourScore, opponentScore, mapName }) {
-  const won = ourScore > opponentScore
-  const draw = ourScore === opponentScore
+/**
+ * @param {object} params
+ * @param {string} params.opponentName
+ * @param {string} params.formatLabel Ex. "Bo1", "Bo3", "Bo5".
+ * @param {string} params.seriesScore Score déjà formaté (ex. "13 – 8" en Bo1, "2 – 1" en Bo3/Bo5).
+ * @param {'win'|'loss'|'draw'} params.result
+ * @param {{ mapName: string, compositionName: string|null, ourScore: number, opponentScore: number }[]} params.maps
+ *   Une entrée par manche jouée, dans l'ordre. Toujours au moins une entrée.
+ *
+ * Message structuré en champs (fields) plutôt qu'en une seule phrase :
+ * chaque information (adversaire, format, score, détail des manches)
+ * se lit d'un coup d'œil dans Discord au lieu d'être noyée dans une
+ * description à rallonge.
+ */
+export function matchResultEmbed({ opponentName, formatLabel, seriesScore, result, maps }) {
+  const draw = result === 'draw'
+  const won = result === 'win'
   const title = draw ? '➖ Match nul' : won ? '🏆 Victoire !' : '💀 Défaite'
   const color = draw ? WARN_COLOR : won ? SUCCESS_COLOR : DANGER_COLOR
+
+  const fields = [
+    { name: 'Adversaire', value: opponentName, inline: true },
+    { name: 'Format', value: formatLabel, inline: true },
+    { name: 'Score de la série', value: `**${seriesScore}**`, inline: true },
+  ]
+
+  if (maps.length > 1) {
+    fields.push({
+      name: 'Manches',
+      value: maps
+        .map((m, i) => {
+          const compLabel = m.compositionName ? ` · ${m.compositionName}` : ''
+          return `Map ${i + 1} — **${m.mapName}**${compLabel} : ${m.ourScore} – ${m.opponentScore}`
+        })
+        .join('\n'),
+    })
+  } else if (maps[0]) {
+    const compLabel = maps[0].compositionName ? ` (${maps[0].compositionName})` : ''
+    fields.push({ name: 'Map', value: `${maps[0].mapName}${compLabel}`, inline: true })
+  }
 
   return {
     embeds: [
       {
         title,
-        description: `**${ourScore} – ${opponentScore}** contre **${opponentName}**${mapName ? ` sur ${mapName}` : ''}`,
         color,
+        fields,
         footer: { text: 'Comp Builder' },
         timestamp: new Date().toISOString(),
       },
@@ -62,16 +97,33 @@ export function matchResultEmbed({ opponentName, ourScore, opponentScore, mapNam
   }
 }
 
-export function matchScheduledEmbed({ opponentName, matchDate, mapName }) {
+/**
+ * @param {object} params
+ * @param {string} params.opponentName
+ * @param {string} params.formatLabel Ex. "Bo1", "Bo3", "Bo5".
+ * @param {string} [params.matchDate] Date ISO (YYYY-MM-DD) ou vide si à définir.
+ * @param {{ mapName: string }[]} params.maps Maps déjà choisies pour ce match (peut être vide).
+ */
+export function matchScheduledEmbed({ opponentName, formatLabel, matchDate, maps }) {
   const dateLabel = matchDate
     ? new Date(matchDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-    : 'date à confirmer'
+    : 'à confirmer'
+
+  const fields = [
+    { name: 'Adversaire', value: opponentName, inline: true },
+    { name: 'Format', value: formatLabel, inline: true },
+    { name: 'Date', value: dateLabel, inline: true },
+  ]
+
+  if (maps.length > 0) {
+    fields.push({ name: maps.length > 1 ? 'Maps' : 'Map', value: maps.map((m) => m.mapName).join(', ') })
+  }
 
   return {
     embeds: [
       {
         title: '📅 Match programmé',
-        description: `Contre **${opponentName}**${mapName ? ` sur ${mapName}` : ''} — ${dateLabel}.`,
+        fields,
         color: BRAND_COLOR,
         footer: { text: 'Comp Builder' },
         timestamp: new Date().toISOString(),

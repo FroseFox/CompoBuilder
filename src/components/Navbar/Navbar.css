@@ -22,13 +22,13 @@
 }
 
 .sidebar__mark {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  background: var(--brand-red);
+  background: linear-gradient(135deg, var(--brand-red) 0%, var(--accent-amber) 100%);
   color: #fff;
   box-shadow: 0 4px 16px var(--brand-red-glow);
   transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
@@ -47,17 +47,18 @@
 .sidebar__title {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 0.03em;
+  font-size: 1.2rem;
+  letter-spacing: 0.02em;
   color: var(--text-primary);
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
 .sidebar__title-accent {
   display: block;
-  color: var(--brand-red);
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
+  color: var(--accent-amber);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
 }
 
 .sidebar__search-trigger {
@@ -99,10 +100,10 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: var(--radius-sm);
   font-family: var(--font-display);
-  font-size: 0.86rem;
+  font-size: 0.98rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text-secondary);
@@ -114,7 +115,7 @@
 .sidebar__link-bg {
   position: absolute;
   inset: 0;
-  background: var(--brand-red-soft);
+  background: linear-gradient(90deg, var(--brand-red-soft) 0%, transparent 100%);
   border-left: 3px solid var(--brand-red);
   border-radius: var(--radius-sm);
   z-index: 0;
