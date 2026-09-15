@@ -8,7 +8,8 @@ import { useToast } from '../../context/ToastContext'
 import { useSettings } from '../../context/SettingsContext'
 import { getCompsForMap } from '../../utils/compositions'
 import { STATUS_META } from '../../utils/storage'
-import { sendDiscordMessage, compositionValidatedEmbed } from '../../utils/discordWebhook'
+import { sendDiscordMessage, sendDiscordVoteMessage, compositionValidatedEmbed, compositionVoteEmbed } from '../../utils/discordWebhook'
+import { addVoteReactions, getVoteCounts } from '../../utils/discordBot'
 import AgentSlot from '../../components/AgentSlot/AgentSlot'
 import AgentSelectionModal from '../../components/AgentSelectionModal/AgentSelectionModal'
 import CompositionTabs from '../../components/CompositionTabs/CompositionTabs'
@@ -45,6 +46,9 @@ export default function Editor() {
     removeSlot,
     reorderSlots,
     clearComposition,
+    setVoteState,
+    applyVoteValidated,
+    applyVoteRejected,
   } = useCompositions()
 
   const [activeSlot, setActiveSlot] = useState(null)
@@ -52,6 +56,8 @@ export default function Editor() {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [activeCompId, setActiveCompId] = useState(null)
   const [compareOpen, setCompareOpen] = useState(false)
+  const [voteBusy, setVoteBusy] = useState(false)
+  const [voteResolvePreview, setVoteResolvePreview] = useState(null)
 
   const map = useMemo(() => maps.find((m) => m.uuid === mapId), [maps, mapId])
   const comps = getCompsForMap(compositionsByMap, mapId)
@@ -128,6 +134,75 @@ export default function Editor() {
     // (pas à chaque changement de statut, et pas si déjà validée avant).
     if (newStatus === 'validated' && !wasValidated && webhookUrl) {
       sendDiscordMessage(compositionValidatedEmbed({ mapName: map?.name, compositionName: composition.name }))
+    }
+  }
+
+  // ---------- Vote Discord de validation ----------
+
+  const handleStartVote = async () => {
+    if (!webhookUrl || voteBusy) return
+    setVoteBusy(true)
+    try {
+      const sent = await sendDiscordVoteMessage(
+        compositionVoteEmbed({ mapName: map?.name, compositionName: composition.name })
+      )
+      if (!sent) {
+        pushToast("Impossible d'envoyer le message de vote sur Discord.", 'error')
+        return
+      }
+      const reacted = await addVoteReactions(sent)
+      await setVoteState(mapId, composition.id, {
+        voteStatus: 'open',
+        voteMessageId: sent.messageId,
+        voteChannelId: sent.channelId,
+      })
+      pushToast(
+        reacted
+          ? 'Vote lancé sur Discord — ✅/❌ à retrouver sur le message.'
+          : "Vote lancé, mais l'ajout automatique des réactions a échoué (bot Discord configuré ?). Ajoutez ✅ et ❌ manuellement sur le message.",
+        reacted ? 'success' : 'error'
+      )
+    } finally {
+      setVoteBusy(false)
+    }
+  }
+
+  const handleCancelVote = async () => {
+    if (voteBusy) return
+    setVoteBusy(true)
+    try {
+      await setVoteState(mapId, composition.id, { voteStatus: null, voteMessageId: null, voteChannelId: null })
+      pushToast('Vote annulé.', 'success')
+    } finally {
+      setVoteBusy(false)
+    }
+  }
+
+  const handleOpenResolve = async () => {
+    if (voteBusy) return
+    setVoteBusy(true)
+    try {
+      const counts = await getVoteCounts({ channelId: composition.voteChannelId, messageId: composition.voteMessageId })
+      if (!counts) {
+        pushToast('Impossible de récupérer les votes (bot Discord non configuré, ou message supprimé).', 'error')
+        return
+      }
+      setVoteResolvePreview({ ...counts, outcome: counts.yes > counts.no ? 'validated' : 'rejected' })
+    } finally {
+      setVoteBusy(false)
+    }
+  }
+
+  const handleConfirmResolve = async () => {
+    const preview = voteResolvePreview
+    setVoteResolvePreview(null)
+    if (!preview) return
+    if (preview.outcome === 'validated') {
+      await applyVoteValidated(mapId, composition.id)
+      pushToast('Vote validé — composition passée à "Prête".', 'success')
+    } else {
+      await applyVoteRejected(mapId, composition.id)
+      pushToast('Vote refusé — composition supprimée.', 'success')
     }
   }
 
@@ -290,6 +365,36 @@ export default function Editor() {
             </section>
           </div>
 
+          {isAdmin && (
+            <section className="editor__section">
+              <div className="editor__section-header">
+                <h2>Vote Discord</h2>
+                <p>Demandez à l'équipe de valider cette composition directement depuis Discord.</p>
+              </div>
+              {!webhookUrl ? (
+                <p className="editor__notes-empty">
+                  Configurez un webhook Discord dans les réglages pour pouvoir lancer un vote.
+                </p>
+              ) : composition.voteStatus === 'open' ? (
+                <div className="vote-panel">
+                  <span className="vote-panel__badge">🗳️ Vote en cours sur Discord</span>
+                  <div className="vote-panel__actions">
+                    <button className="btn btn-ghost" onClick={handleCancelVote} disabled={voteBusy}>
+                      Annuler le vote
+                    </button>
+                    <button className="btn btn-primary" onClick={handleOpenResolve} disabled={voteBusy}>
+                      Résoudre le vote
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className="btn btn-ghost" onClick={handleStartVote} disabled={voteBusy}>
+                  🗳️ Lancer un vote Discord
+                </button>
+              )}
+            </section>
+          )}
+
           <section className="editor__section">
             <div className="editor__section-header">
               <h2>Notes</h2>
@@ -339,6 +444,28 @@ export default function Editor() {
         confirmLabel="Supprimer"
         onConfirm={handleDeleteComp}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(voteResolvePreview)}
+        title={
+          voteResolvePreview?.outcome === 'validated'
+            ? 'Valider cette composition ?'
+            : 'Supprimer cette composition ?'
+        }
+        description={
+          voteResolvePreview
+            ? `${voteResolvePreview.yes} ✅ contre ${voteResolvePreview.no} ❌ — ${
+                voteResolvePreview.outcome === 'validated'
+                  ? 'la composition passera au statut "Prête".'
+                  : 'la composition sera définitivement supprimée.'
+              }`
+            : ''
+        }
+        confirmLabel={voteResolvePreview?.outcome === 'validated' ? 'Valider' : 'Supprimer'}
+        danger={voteResolvePreview?.outcome !== 'validated'}
+        onConfirm={handleConfirmResolve}
+        onCancel={() => setVoteResolvePreview(null)}
       />
 
       <CompositionCompareModal

@@ -56,6 +56,12 @@ create table if not exists public.compositions (
   status text not null default 'todo' check (status in ('todo', 'testing', 'needs_work', 'validated')),
   notes text not null default '',
   is_main boolean not null default false,
+  -- Vote Discord de validation (✅/❌ sur un message) : 'open' tant que
+  -- non résolu par un admin, NULL sinon (résolu ou jamais lancé). Voir
+  -- migration_010_discord_votes.sql.
+  vote_status text check (vote_status is null or vote_status = 'open'),
+  vote_message_id text,
+  vote_channel_id text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -82,6 +88,14 @@ create table if not exists public.matches (
   notes text not null default '',
   position integer not null default 0,
   opponent_logo_url text,
+  -- Validation de présence (✅/❌ sur le message Discord envoyé à la
+  -- programmation) : comptage global, resynchronisé à la demande.
+  -- Voir migration_010_discord_votes.sql.
+  presence_message_id text,
+  presence_channel_id text,
+  presence_yes integer,
+  presence_no integer,
+  presence_synced_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

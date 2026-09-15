@@ -106,6 +106,12 @@
   color: var(--text-secondary);
 }
 
+.upcoming-match__presence {
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+}
+
 .upcoming-match__actions {
   display: flex;
   align-items: center;

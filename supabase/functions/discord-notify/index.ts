@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
     .single()
   if (!profile?.is_admin) return json({ error: "Réservé aux administrateurs." }, 403)
 
-  let body: { payload?: unknown; testUrl?: string }
+  let body: { payload?: unknown; testUrl?: string; wait?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -81,13 +81,28 @@ Deno.serve(async (req: Request) => {
   // une URL data:/base64 n'est pas acceptée par le champ avatar_url).
   const discordPayload = { username: "MatchNotif", ...(body.payload as object || {}) }
 
+  // wait=true : Discord renvoie le message créé (id, channel_id) au lieu
+  // d'un simple 204 — utilisé pour les votes (validation de compo,
+  // présence à un match), où on doit ensuite ajouter des réactions ✅/❌
+  // à CE message précis via l'edge function discord-bot.
+  const url = body.wait ? `${webhookUrl}${webhookUrl.includes('?') ? '&' : '?'}wait=true` : webhookUrl
+
   try {
-    const discordRes = await fetch(webhookUrl, {
+    const discordRes = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(discordPayload),
     })
-    return json({ ok: discordRes.ok, status: discordRes.status })
+    let message: { id?: string; channel_id?: string } | null = null
+    if (body.wait && discordRes.ok) {
+      try {
+        message = await discordRes.json()
+      } catch {
+        // Réponse inattendue : on renvoie quand même ok/status, le
+        // client saura simplement qu'il n'a pas pu récupérer l'id.
+      }
+    }
+    return json({ ok: discordRes.ok, status: discordRes.status, message })
   } catch (err) {
     return json({ error: `Discord injoignable : ${String(err)}` }, 502)
   }

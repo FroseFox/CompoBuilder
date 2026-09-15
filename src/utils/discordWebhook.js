@@ -29,17 +29,42 @@ const DANGER_COLOR = 0xff5f6d
  * @param {string} [options.testUrl] URL de webhook non encore
  *   enregistrée, utilisée uniquement par le bouton "Tester" du panneau
  *   de réglages (avant sauvegarde).
+ * @param {boolean} [options.wait] Si vrai, récupère l'id du message
+ *   Discord créé (nécessaire pour ensuite y ajouter des réactions de
+ *   vote via addVoteReactions) — voir sendDiscordVoteMessage.
  */
-export async function sendDiscordMessage(payload, { testUrl } = {}) {
+export async function sendDiscordMessage(payload, { testUrl, wait } = {}) {
   try {
     const { data, error } = await supabase.functions.invoke('discord-notify', {
-      body: { payload, testUrl },
+      body: { payload, testUrl, wait },
     })
     if (error) throw error
     return Boolean(data?.ok)
   } catch (err) {
     console.error('Envoi webhook Discord impossible :', err)
     return false
+  }
+}
+
+/**
+ * Variante de sendDiscordMessage utilisée pour un message "à voter"
+ * (validation de compo, présence à un match) : renvoie l'id du message
+ * et du salon (nécessaires pour y ajouter les réactions ✅/❌ ensuite),
+ * ou `null` si l'envoi a échoué (webhook absent/invalide, Discord
+ * injoignable…) — best effort, comme le reste des notifications.
+ * @returns {Promise<{ messageId: string, channelId: string } | null>}
+ */
+export async function sendDiscordVoteMessage(payload) {
+  try {
+    const { data, error } = await supabase.functions.invoke('discord-notify', {
+      body: { payload, wait: true },
+    })
+    if (error) throw error
+    if (!data?.ok || !data?.message?.id || !data?.message?.channel_id) return null
+    return { messageId: data.message.id, channelId: data.message.channel_id }
+  } catch (err) {
+    console.error('Envoi du message de vote Discord impossible :', err)
+    return null
   }
 }
 
@@ -119,12 +144,43 @@ export function matchScheduledEmbed({ opponentName, formatLabel, matchDate, maps
     fields.push({ name: maps.length > 1 ? 'Maps' : 'Map', value: maps.map((m) => m.mapName).join(', ') })
   }
 
+  // Les réactions ✅/❌ elles-mêmes sont ajoutées séparément une fois le
+  // message envoyé (voir addVoteReactions) ; ce champ explique juste ce
+  // qu'elles veulent dire une fois qu'elles apparaissent sur le message.
+  fields.push({ name: 'Présence', value: 'Réagissez ✅ si vous êtes dispo, ❌ sinon.' })
+
   return {
     embeds: [
       {
         title: '📅 Match programmé',
         fields,
         color: BRAND_COLOR,
+        footer: { text: 'Comp Builder' },
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  }
+}
+
+/**
+ * Message de lancement d'un vote de validation pour une composition.
+ * Les réactions ✅/❌ sont ajoutées séparément (voir addVoteReactions
+ * dans utils/discordBot.js) une fois ce message envoyé.
+ * @param {object} params
+ * @param {string} params.mapName
+ * @param {string} params.compositionName
+ */
+export function compositionVoteEmbed({ mapName, compositionName }) {
+  return {
+    embeds: [
+      {
+        title: '🗳️ Vote — cette composition est-elle bonne ?',
+        description: `Réagissez avec ✅ pour valider ou ❌ pour refuser **${compositionName}** sur **${mapName}**.`,
+        fields: [
+          { name: 'Map', value: mapName, inline: true },
+          { name: 'Composition', value: compositionName, inline: true },
+        ],
+        color: WARN_COLOR,
         footer: { text: 'Comp Builder' },
         timestamp: new Date().toISOString(),
       },

@@ -199,6 +199,50 @@ export function CompositionsProvider({ children }) {
     [mergeComp, handleError]
   )
 
+  // ---------- Vote Discord de validation ----------
+  // L'envoi du message et des réactions se fait côté page (Editor,
+  // qui a besoin du nom de map/compo et du webhook) ; le contexte ne
+  // fait que persister l'état du vote une fois ces appels Discord
+  // terminés, comme setStatus_ le fait pour un changement de statut.
+
+  const setVoteState = useCallback(
+    async (mapUuid, compId, votePatch) => {
+      try {
+        const updated = await updateCompositionRow(compId, votePatch)
+        mergeComp(updated)
+        return updated
+      } catch (err) {
+        handleError(err, 'Impossible de mettre à jour le vote.')
+        return null
+      }
+    },
+    [mergeComp, handleError]
+  )
+
+  /** Vote résolu en faveur du "oui" : composition validée, vote refermé. */
+  const applyVoteValidated = useCallback(
+    async (mapUuid, compId) => {
+      try {
+        const updated = await updateCompositionRow(compId, {
+          status: STATUS.VALIDATED,
+          voteStatus: null,
+          voteMessageId: null,
+          voteChannelId: null,
+        })
+        mergeComp(updated)
+      } catch (err) {
+        handleError(err, "Impossible d'appliquer le résultat du vote.")
+      }
+    },
+    [mergeComp, handleError]
+  )
+
+  /** Vote résolu en faveur du "non" : composition supprimée (comme demandé). */
+  const applyVoteRejected = useCallback(
+    (mapUuid, compId) => deleteComposition(mapUuid, compId),
+    [deleteComposition]
+  )
+
   const setNotes = useCallback(
     async (mapUuid, compId, notes) => {
       try {
@@ -301,6 +345,9 @@ export function CompositionsProvider({ children }) {
       setMain,
       setStatus: setStatus_,
       setNotes,
+      setVoteState,
+      applyVoteValidated,
+      applyVoteRejected,
       setSlotAgent,
       setSlotPlayer,
       removeSlot,
@@ -319,6 +366,9 @@ export function CompositionsProvider({ children }) {
       setMain,
       setStatus_,
       setNotes,
+      setVoteState,
+      applyVoteValidated,
+      applyVoteRejected,
       setSlotAgent,
       setSlotPlayer,
       removeSlot,

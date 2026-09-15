@@ -20,6 +20,11 @@ function rowToComposition(row) {
     status: row.status,
     notes: row.notes,
     isMain: row.is_main,
+    // Vote Discord de validation — voteStatus vaut 'open' pendant que
+    // le vote est en cours, null sinon (jamais lancé, ou déjà résolu).
+    voteStatus: row.vote_status ?? null,
+    voteMessageId: row.vote_message_id ?? null,
+    voteChannelId: row.vote_channel_id ?? null,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
   }
@@ -76,6 +81,14 @@ function rowToMatch(row) {
     format: row.format,
     matchDate: row.match_date,
     notes: row.notes,
+    // Validation de présence (comptage global des réactions ✅/❌ sur le
+    // message Discord envoyé à la programmation) — null tant qu'aucune
+    // synchronisation n'a encore eu lieu.
+    presenceMessageId: row.presence_message_id ?? null,
+    presenceChannelId: row.presence_channel_id ?? null,
+    presenceYes: row.presence_yes ?? null,
+    presenceNo: row.presence_no ?? null,
+    presenceSyncedAt: row.presence_synced_at ? new Date(row.presence_synced_at).getTime() : null,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
     // Présent seulement quand la ligne vient d'un select avec la
@@ -151,6 +164,9 @@ export async function updateCompositionRow(id, patch) {
   if ('status' in patch) dbPatch.status = patch.status
   if ('notes' in patch) dbPatch.notes = patch.notes
   if ('isMain' in patch) dbPatch.is_main = patch.isMain
+  if ('voteStatus' in patch) dbPatch.vote_status = patch.voteStatus
+  if ('voteMessageId' in patch) dbPatch.vote_message_id = patch.voteMessageId
+  if ('voteChannelId' in patch) dbPatch.vote_channel_id = patch.voteChannelId
 
   const { data, error } = await supabase
     .from('compositions')
@@ -248,6 +264,11 @@ export async function updateMatchRow(id, patch, mapsDraft) {
   if ('format' in patch) dbPatch.format = patch.format
   if ('matchDate' in patch) dbPatch.match_date = patch.matchDate
   if ('notes' in patch) dbPatch.notes = patch.notes
+  if ('presenceMessageId' in patch) dbPatch.presence_message_id = patch.presenceMessageId
+  if ('presenceChannelId' in patch) dbPatch.presence_channel_id = patch.presenceChannelId
+  if ('presenceYes' in patch) dbPatch.presence_yes = patch.presenceYes
+  if ('presenceNo' in patch) dbPatch.presence_no = patch.presenceNo
+  if ('presenceSyncedAt' in patch) dbPatch.presence_synced_at = patch.presenceSyncedAt
 
   const { error } = await supabase.from('matches').update(dbPatch).eq('id', id)
   if (error) throw error

@@ -18,7 +18,8 @@ import {
   MATCH_FORMAT,
   MATCH_RESULT_META,
 } from '../../utils/matches'
-import { sendDiscordMessage, matchResultEmbed, matchScheduledEmbed } from '../../utils/discordWebhook'
+import { sendDiscordMessage, sendDiscordVoteMessage, matchResultEmbed, matchScheduledEmbed } from '../../utils/discordWebhook'
+import { addVoteReactions, getVoteCounts } from '../../utils/discordBot'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
 import Loader from '../../components/Loader/Loader'
 import './MatchCenter.css'
@@ -57,6 +58,7 @@ export default function MatchCenter() {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [syncingPresenceId, setSyncingPresenceId] = useState(null)
 
   const mapByUuid = useMemo(() => new Map(maps.map((m) => [m.uuid, m])), [maps])
 
@@ -222,14 +224,22 @@ export default function MatchCenter() {
       if (id && formMode === 'scheduled') {
         pushToast('Match programmé.', 'success')
         if (webhookUrl) {
-          sendDiscordMessage(
+          // sendDiscordVoteMessage (pas sendDiscordMessage) : on a besoin
+          // de l'id du message pour y ajouter les réactions ✅/❌ de
+          // validation de présence, et pouvoir compter les réponses
+          // ensuite (voir handleSyncPresence).
+          sendDiscordVoteMessage(
             matchScheduledEmbed({
               opponentName: payload.opponentName,
               formatLabel,
               matchDate: payload.matchDate,
               maps: embedMaps,
             })
-          )
+          ).then(async (sent) => {
+            if (!sent) return
+            await addVoteReactions(sent)
+            await updateMatch(id, { presenceMessageId: sent.messageId, presenceChannelId: sent.channelId })
+          })
         }
       } else if (id) {
         pushToast('Match enregistré.', 'success')
@@ -253,6 +263,25 @@ export default function MatchCenter() {
     await deleteMatch(confirmDeleteId)
     setConfirmDeleteId(null)
     pushToast('Match supprimé.', 'success')
+  }
+
+  const handleSyncPresence = async (match) => {
+    if (!match.presenceMessageId || !match.presenceChannelId || syncingPresenceId) return
+    setSyncingPresenceId(match.id)
+    try {
+      const counts = await getVoteCounts({ channelId: match.presenceChannelId, messageId: match.presenceMessageId })
+      if (!counts) {
+        pushToast('Impossible de récupérer la présence (bot Discord non configuré, ou message supprimé).', 'error')
+        return
+      }
+      await updateMatch(match.id, {
+        presenceYes: counts.yes,
+        presenceNo: counts.no,
+        presenceSyncedAt: new Date().toISOString(),
+      })
+    } finally {
+      setSyncingPresenceId(null)
+    }
   }
 
   return (
@@ -346,9 +375,33 @@ export default function MatchCenter() {
                       {mapNames.join(', ') || 'Map à définir'}
                       {singleComp ? ` · ${singleComp}` : ''}
                     </span>
+                    {match.presenceMessageId && (match.presenceYes !== null || match.presenceNo !== null) && (
+                      <span className="upcoming-match__presence">
+                        Présence : ✅ {match.presenceYes ?? 0} · ❌ {match.presenceNo ?? 0}
+                      </span>
+                    )}
                   </div>
                   {isAdmin && (
                     <div className="upcoming-match__actions">
+                      {match.presenceMessageId && (
+                        <button
+                          className="btn btn-ghost btn-icon"
+                          onClick={() => handleSyncPresence(match)}
+                          disabled={syncingPresenceId === match.id}
+                          aria-label="Resynchroniser la présence Discord"
+                          title="Resynchroniser la présence Discord"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <path
+                              d="M4 12a8 8 0 0 1 13.66-5.66L20 8M20 4v4h-4M20 12a8 8 0 0 1-13.66 5.66L4 16m0 4v-4h4"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                      )}
                       <button className="btn btn-primary" onClick={() => openFillResult(match)}>
                         Renseigner le résultat
                       </button>

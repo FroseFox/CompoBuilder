@@ -146,6 +146,30 @@
   color: var(--text-tertiary) !important;
 }
 
+.vote-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px dashed color-mix(in srgb, var(--accent-amber) 45%, var(--border-strong));
+  border-radius: var(--radius-md);
+}
+
+.vote-panel__badge {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--accent-amber);
+}
+
+.vote-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
 .editor__grid-two {
   display: grid;
   grid-template-columns: 1fr 1fr;
