@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { StatusDot } from '../StatusBadge/StatusBadge'
 import RoleBadge from '../RoleBadge/RoleBadge'
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
+import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import './CompositionCompareModal.css'
 
 /** Une colonne compacte : nom + statut + 5 lignes agent/joueur, en lecture seule. */
@@ -62,6 +63,8 @@ export default function CompositionCompareModal({ open, onClose, comps, agentByU
     setRightId((comps.find((c) => c.id !== comps[0]?.id) || comps[0])?.id || null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  useEscapeToClose(open, onClose)
 
   return (
     <AnimatePresence>

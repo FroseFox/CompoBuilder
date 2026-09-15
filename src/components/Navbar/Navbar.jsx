@@ -50,149 +50,151 @@ export default function Navbar() {
 
   return (
     <>
-      <aside className="sidebar">
-        <Link to="/" className="sidebar__brand">
-          <span className="sidebar__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 3v6M12 15v6M3 12h6M15 12h6" stroke="currentColor" strokeWidth="2.4" />
-              <rect x="10.5" y="10.5" width="3" height="3" fill="currentColor" />
-            </svg>
-          </span>
-          <span className="sidebar__title">
-            COMP<span className="sidebar__title-accent">BUILDER</span>
-          </span>
-        </Link>
+      <header className="topnav">
+        <div className="topnav__row">
+          <Link to="/" className="topnav__brand">
+            <span className="topnav__mark cut-corner-sm" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3v6M12 15v6M3 12h6M15 12h6" stroke="currentColor" strokeWidth="2.4" />
+                <rect x="10.5" y="10.5" width="3" height="3" fill="currentColor" />
+              </svg>
+            </span>
+            <span className="topnav__title">
+              COMP<span className="topnav__title-accent">BUILDER</span>
+            </span>
+          </Link>
 
-        <button
-          type="button"
-          className="sidebar__search-trigger"
-          onClick={() => setSearchOpen(true)}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-            <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <span>Rechercher</span>
-          <kbd>⌘K</kbd>
-        </button>
+          <nav className={`topnav__links ${mobileMenuOpen ? 'topnav__links--open' : ''}`}>
+            {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) => `topnav__link ${isActive ? 'topnav__link--active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="topnav__link-content">
+                      <Icon />
+                      <span>{label}</span>
+                    </span>
+                    {isActive && (
+                      <motion.span
+                        className="topnav__link-bar"
+                        layoutId="topnav-active-bar"
+                        transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
 
-        <button
-          type="button"
-          className="sidebar__hamburger"
-          onClick={() => setMobileMenuOpen((o) => !o)}
-          aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-          aria-expanded={mobileMenuOpen}
-        >
-          {mobileMenuOpen ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          )}
-        </button>
-
-        <nav className={`sidebar__links ${mobileMenuOpen ? 'sidebar__links--open' : ''}`}>
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) => `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <motion.span
-                      className="sidebar__link-bg"
-                      layoutId="sidebar-active-bg"
-                      transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                    />
-                  )}
-                  <span className="sidebar__link-content">
-                    <Icon />
-                    <span>{label}</span>
-                  </span>
-                </>
+            <div className="topnav__mobile-actions">
+              <button className="btn btn-ghost" onClick={toggleSound}>
+                {soundEnabled ? 'Couper le son' : 'Activer le son'}
+              </button>
+              <button className="btn btn-ghost" onClick={toggleTheme}>
+                {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+              </button>
+              {isAdmin && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setSettingsOpen(true)
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  Réglages d'équipe
+                </button>
               )}
-            </NavLink>
-          ))}
+              {isAdmin && (
+                <button
+                  className="btn btn-danger"
+                  onClick={() => {
+                    setConfirmOpen(true)
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  Réinitialiser tout
+                </button>
+              )}
+              <AuthPanel />
+            </div>
+          </nav>
 
-          <div className="sidebar__mobile-actions">
-            <button className="btn btn-ghost" onClick={toggleSound}>
-              {soundEnabled ? 'Couper le son' : 'Activer le son'}
-            </button>
-            <button className="btn btn-ghost" onClick={toggleTheme}>
-              {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-            </button>
-            {isAdmin && (
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  setSettingsOpen(true)
-                  setMobileMenuOpen(false)
-                }}
-              >
-                Réglages d'équipe
-              </button>
-            )}
-            {isAdmin && (
-              <button
-                className="btn btn-danger"
-                onClick={() => {
-                  setConfirmOpen(true)
-                  setMobileMenuOpen(false)
-                }}
-              >
-                Réinitialiser tout
-              </button>
-            )}
-            <AuthPanel />
-          </div>
-        </nav>
-
-        <div className="sidebar__footer">
-          <button
-            className="btn btn-ghost btn-icon sidebar__theme-toggle"
-            onClick={toggleSound}
-            aria-label={soundEnabled ? 'Couper le son' : 'Activer le son'}
-            title={soundEnabled ? 'Couper le son' : 'Activer le son'}
-          >
-            {soundEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
-          </button>
-
-          <button
-            className="btn btn-ghost btn-icon sidebar__theme-toggle"
-            onClick={toggleTheme}
-            aria-label={theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'}
-            title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-          >
-            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-          </button>
-
-          {isAdmin && (
+          <div className="topnav__actions">
             <button
-              className="btn btn-ghost btn-icon sidebar__theme-toggle"
-              onClick={() => setSettingsOpen(true)}
-              aria-label="Réglages d'équipe"
-              title="Réglages d'équipe (webhook Discord)"
+              type="button"
+              className="topnav__search-trigger"
+              onClick={() => setSearchOpen(true)}
             >
-              <SettingsIcon />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <span>Rechercher</span>
+              <kbd>⌘K</kbd>
             </button>
-          )}
 
-          {isAdmin && (
-            <button className="btn btn-danger sidebar__reset" onClick={() => setConfirmOpen(true)}>
-              <span>Réinitialiser tout</span>
+            <button
+              className="btn btn-ghost btn-icon topnav__icon-btn"
+              onClick={toggleSound}
+              aria-label={soundEnabled ? 'Couper le son' : 'Activer le son'}
+              title={soundEnabled ? 'Couper le son' : 'Activer le son'}
+            >
+              {soundEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
             </button>
-          )}
 
-          <AuthPanel />
+            <button
+              className="btn btn-ghost btn-icon topnav__icon-btn"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'}
+              title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+            >
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
+
+            {isAdmin && (
+              <button
+                className="btn btn-ghost btn-icon topnav__icon-btn"
+                onClick={() => setSettingsOpen(true)}
+                aria-label="Réglages d'équipe"
+                title="Réglages d'équipe (webhook Discord)"
+              >
+                <SettingsIcon />
+              </button>
+            )}
+
+            {isAdmin && (
+              <button className="btn btn-danger topnav__reset" onClick={() => setConfirmOpen(true)}>
+                <span>Réinitialiser tout</span>
+              </button>
+            )}
+
+            <AuthPanel />
+
+            <button
+              type="button"
+              className="topnav__hamburger"
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
-      </aside>
+      </header>
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
 

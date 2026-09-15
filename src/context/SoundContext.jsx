@@ -5,8 +5,9 @@ const SoundContext = createContext(null)
 
 /**
  * Ajoute un léger retour sonore sur toute l'interface : clic sur un bouton
- * ou un lien, survol des liens de la sidebar, sans avoir à instrumenter
- * chaque composant un par un (délégation d'évènements au niveau document).
+ * ou un lien, survol des onglets de la nav du haut, sans avoir à
+ * instrumenter chaque composant un par un (délégation d'évènements au
+ * niveau document).
  */
 export function SoundProvider({ children }) {
   const [enabled, setEnabled] = useState(isSoundEnabled())
@@ -17,12 +18,12 @@ export function SoundProvider({ children }) {
       if (!isSoundEnabled()) return
       const interactive = e.target.closest?.('button, a, [role="button"]')
       if (!interactive || interactive.disabled) return
-      playSound(interactive.classList.contains('sidebar__link') ? 'nav' : 'click')
+      playSound(interactive.classList.contains('topnav__link') ? 'nav' : 'click')
     }
 
     const handleHover = (e) => {
       if (!isSoundEnabled()) return
-      const link = e.target.closest?.('.sidebar__link')
+      const link = e.target.closest?.('.topnav__link, .filter-chip, .map-card')
       if (link && link !== lastHovered.current) {
         lastHovered.current = link
         playSound('hover')

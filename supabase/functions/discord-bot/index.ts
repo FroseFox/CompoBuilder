@@ -33,6 +33,25 @@ function json(body: unknown, status = 200) {
   })
 }
 
+// PUT d'une réaction, avec UNE retentative si Discord répond 429 (rate
+// limit) — on attend alors exactement le `retry_after` qu'il indique
+// (en secondes, + une petite marge) avant de réessayer une fois.
+async function putReaction(channelId: string, messageId: string, emoji: string, headers: Record<string, string>) {
+  const url = `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/${emoji}/@me`
+  const res = await fetch(url, { method: "PUT", headers })
+  if (res.status !== 429) return res
+
+  let retryAfterMs = 600
+  try {
+    const body = await res.clone().json()
+    if (typeof body?.retry_after === "number") retryAfterMs = Math.ceil(body.retry_after * 1000) + 50
+  } catch {
+    // Corps illisible : on garde le délai par défaut ci-dessus.
+  }
+  await new Promise((resolve) => setTimeout(resolve, retryAfterMs))
+  return fetch(url, { method: "PUT", headers })
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
   if (req.method !== "POST") return json({ error: "Méthode non supportée." }, 405)
@@ -75,11 +94,17 @@ Deno.serve(async (req: Request) => {
   const discordHeaders = { Authorization: `Bot ${botToken}` }
 
   if (action === "addReactions") {
-    for (const emoji of [YES_EMOJI, NO_EMOJI]) {
-      const res = await fetch(
-        `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}/reactions/${emoji}/@me`,
-        { method: "PUT", headers: discordHeaders }
-      )
+    // Discord limite très strictement l'ajout de réactions consécutives
+    // sur un même message (bien plus que ses limites générales) : deux
+    // PUT envoyés dos à dos, sans délai, font quasi systématiquement
+    // échouer le second avec un 429 — symptôme observé : ✅ passe, ❌
+    // échoue juste derrière. On espace donc les deux appels, et on
+    // retente une fois en respectant le `retry_after` renvoyé par
+    // Discord si la limite est quand même atteinte.
+    const emojis = [YES_EMOJI, NO_EMOJI]
+    for (let i = 0; i < emojis.length; i++) {
+      if (i > 0) await new Promise((resolve) => setTimeout(resolve, 350))
+      const res = await putReaction(channelId, messageId, emojis[i], discordHeaders)
       if (!res.ok) {
         const detail = await res.text().catch(() => "")
         return json({ error: `Discord a refusé l'ajout de réaction (${res.status}). ${detail}`.trim() }, 502)

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useSettings } from '../../context/SettingsContext'
 import { useToast } from '../../context/ToastContext'
 import { sendDiscordMessage, testMessageEmbed } from '../../utils/discordWebhook'
+import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import './TeamSettingsModal.css'
 
 export default function TeamSettingsModal({ open, onClose }) {
@@ -17,6 +18,8 @@ export default function TeamSettingsModal({ open, onClose }) {
   useEffect(() => {
     if (open) setDraft(webhookUrl)
   }, [open, webhookUrl])
+
+  useEscapeToClose(open, onClose)
 
   const handleSave = async (e) => {
     e.preventDefault()

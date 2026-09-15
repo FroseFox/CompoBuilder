@@ -5,7 +5,7 @@
   border-radius: 50%;
   font-family: var(--font-display);
   font-weight: 700;
-  color: #1c130d;
+  color: #0a0e14;
   background: var(--avatar-color, var(--text-tertiary));
   border: 2px solid var(--bg-elevated);
   flex-shrink: 0;

@@ -58,17 +58,17 @@
   font-size: 0.82rem;
   letter-spacing: 0.03em;
   padding: 5px 11px;
-  border-radius: 999px;
-  background: rgba(23, 17, 13, 0.68);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  background: var(--scrim-chip);
   backdrop-filter: blur(8px);
-  color: #faf3ea;
-  border: 1px solid rgba(255, 240, 225, 0.16);
+  color: var(--text-on-image);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .map-card__count--full {
   color: var(--role-sentinel);
   border-color: color-mix(in srgb, var(--role-sentinel) 50%, transparent);
-  background: rgba(23, 17, 13, 0.78);
+  background: var(--scrim-chip-strong);
 }
 
 .map-card__body {
@@ -134,9 +134,9 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(23, 17, 13, 0.68);
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  background: var(--scrim-chip);
   backdrop-filter: blur(8px);
-  color: #faf3ea;
-  border: 1px solid rgba(255, 240, 225, 0.16);
+  color: var(--text-on-image);
+  border: 1px solid rgba(255, 255, 255, 0.16);
 }

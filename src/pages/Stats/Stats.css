@@ -68,7 +68,7 @@
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.8rem;
-  color: #1c130d;
+  color: #0a0e14;
   background: var(--result-color);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--result-color) 25%, transparent);
 }

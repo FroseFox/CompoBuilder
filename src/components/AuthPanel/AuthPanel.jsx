@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
+import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import './AuthPanel.css'
 
 export default function AuthPanel() {
@@ -11,6 +12,8 @@ export default function AuthPanel() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  useEscapeToClose(open, () => setOpen(false))
 
   if (user) {
     return (

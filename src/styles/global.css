@@ -24,19 +24,17 @@ body {
   overflow-x: hidden;
 }
 
-/* Ambiance chaleureuse en fond de page : deux lueurs douces (rouge corail
-   + ambre) plutôt que la grille tactique froide de la version précédente
-   — le repère "outil militaire" cède la place à quelque chose de plus
-   accueillant, sans nuire à la lisibilité du contenu par-dessus. */
+/* Ambiance tactique en fond de page : une seule lueur rouge, discrète,
+   en haut de l'écran — pas le double halo chaleureux (rouge + ambre) de
+   la version précédente. Sobre, façon menu de jeu plutôt que fond
+   "lifestyle". */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 40% at 15% 0%, var(--brand-red-glow) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 35% at 100% 15%, var(--accent-amber-glow) 0%, transparent 60%);
+  background: radial-gradient(ellipse 70% 45% at 50% 0%, var(--brand-red-glow) 0%, transparent 62%);
   opacity: var(--ambient-glow-opacity);
 }
 
@@ -45,9 +43,12 @@ body::before {
   z-index: 1;
 }
 
+/* Nav en haut (voir Navbar.css) plutôt qu'une colonne latérale : la
+   disposition en menu de jeu (onglets horizontaux en haut) remplace la
+   sidebar de la version précédente. */
 .app-layout {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   min-height: 100%;
 }
 
@@ -60,10 +61,10 @@ body::before {
 .app-layout__main::before {
   content: '';
   position: absolute;
-  top: -120px;
+  top: -80px;
   left: 50%;
   width: min(900px, 90%);
-  height: 420px;
+  height: 360px;
   transform: translateX(-50%);
   background: radial-gradient(ellipse at top, var(--brand-red-glow) 0%, transparent 70%);
   opacity: 0.14;
@@ -71,10 +72,31 @@ body::before {
   z-index: 0;
 }
 
-@media (max-width: 900px) {
-  .app-layout {
-    flex-direction: column;
-  }
+/* Coin coupé façon panneau tactique — coupe les angles haut-gauche et
+   bas-droit en diagonale (le motif d'angularité du menu Valorant),
+   réservée aux éléments qui doivent se remarquer (boutons pleins,
+   bannières, logo) plutôt qu'appliquée partout, pour rester "joli" et
+   non "chargé". */
+.cut-corner {
+  clip-path: polygon(
+    var(--corner-cut) 0,
+    100% 0,
+    100% calc(100% - var(--corner-cut)),
+    calc(100% - var(--corner-cut)) 100%,
+    0 100%,
+    0 var(--corner-cut)
+  );
+}
+
+.cut-corner-sm {
+  clip-path: polygon(
+    var(--corner-cut-sm) 0,
+    100% 0,
+    100% calc(100% - var(--corner-cut-sm)),
+    calc(100% - var(--corner-cut-sm)) 100%,
+    0 100%,
+    0 var(--corner-cut-sm)
+  );
 }
 
 h1, h2, h3, h4 {
@@ -266,10 +288,15 @@ img {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 0.86rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 11px 20px;
-  border-radius: var(--radius-sm);
+  border-radius: 2px;
+  /* Coin coupé façon panneau de menu de jeu, sur TOUS les boutons à la
+     fois (plutôt que .cut-corner-sm posée bouton par bouton dans
+     chaque page) : un seul endroit à tenir à jour, effet cohérent
+     partout d'un coup. */
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
   border: 1px solid var(--border-subtle);
   background: var(--bg-hover);
   color: var(--text-primary);
@@ -294,13 +321,13 @@ img {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand-red) 0%, #ff8340 100%);
+  background: var(--brand-red);
   border-color: transparent;
   color: #fff;
   box-shadow: 0 6px 22px var(--brand-red-glow);
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, #ff6e5c 0%, #ff9a56 100%);
+  background: #ff5b68;
   box-shadow: 0 10px 30px var(--brand-red-glow);
 }
 

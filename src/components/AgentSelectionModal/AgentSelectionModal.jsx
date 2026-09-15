@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import RoleBadge from '../RoleBadge/RoleBadge'
+import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import './AgentSelectionModal.css'
 
 const panelVariants = {
@@ -45,6 +46,8 @@ export default function AgentSelectionModal({
     setRoleFilter('all')
     onClose()
   }
+
+  useEscapeToClose(open, handleClose)
 
   return (
     <AnimatePresence>

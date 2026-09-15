@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { playSound } from '../../utils/sound'
+import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import './ConfirmDialog.css'
 
 const panelVariants = {
@@ -22,6 +23,8 @@ export default function ConfirmDialog({
     if (danger) playSound('delete')
     onConfirm()
   }
+
+  useEscapeToClose(open, onCancel)
 
   return (
     <AnimatePresence>

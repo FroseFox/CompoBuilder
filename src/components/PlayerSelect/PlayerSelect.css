@@ -2,9 +2,9 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(10, 14, 20, 0.55);
+  background: var(--scrim-chip);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
   padding: 3px 8px 3px 3px;
   backdrop-filter: blur(6px);
 }
@@ -13,7 +13,7 @@
   appearance: none;
   border: none;
   background: transparent;
-  color: #ece8e1;
+  color: var(--text-on-image);
   font-size: 0.68rem;
   font-weight: 600;
   max-width: 84px;

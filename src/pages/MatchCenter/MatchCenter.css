@@ -333,7 +333,7 @@
   letter-spacing: 0.03em;
   color: var(--result-color);
   padding: 4px 10px 4px 8px;
-  border-radius: 999px;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
   background: color-mix(in srgb, var(--result-color) 14%, transparent);
 }
 

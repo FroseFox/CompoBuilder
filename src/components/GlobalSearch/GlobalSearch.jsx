@@ -6,6 +6,7 @@ import { useCompositions } from '../../context/CompositionsContext'
 import { usePlayers } from '../../context/PlayersContext'
 import { getCompsForMap } from '../../utils/compositions'
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
+import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import './GlobalSearch.css'
 
 const panelVariants = {
@@ -63,6 +64,8 @@ export default function GlobalSearch({ open, onClose }) {
     setQuery('')
     onClose()
   }
+
+  useEscapeToClose(open, handleClose)
 
   return (
     <AnimatePresence>

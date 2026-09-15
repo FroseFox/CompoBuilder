@@ -144,7 +144,7 @@
   font-size: 0.72rem;
   color: var(--text-tertiary);
   background: var(--bg-hover);
-  border-radius: 999px;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
   padding: 2px 9px;
 }
 

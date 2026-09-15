@@ -1,61 +1,74 @@
 /* ============================================
    TOKENS — Comp Builder
-   Refonte : identité chaleureuse et colorée plutôt que le HUD
-   tactique froid (bleu nuit + cyan) de la version précédente.
-   Base sombre brun-noir, accents rouge corail / ambre / émeraude.
+   Refonte "menu Valorant" : identité tactique sombre (encre bleu-nuit
+   quasi noire), accent rouge de marque, formes anguleuses à coins
+   coupés — plutôt que le ton chaleureux brun/corail de la version
+   précédente. Alignée sur la palette déjà utilisée pour les cartes
+   Discord générées en canvas (exportComposition.js / matchCard.js),
+   pour que le site et les images envoyées à l'équipe se ressemblent.
    ============================================ */
 
 :root {
-  /* Marque (constante, ne change pas avec le thème) */
-  --brand-red: #ff5a4a;
-  --brand-red-dim: #ff5a4acc;
-  --brand-red-soft: rgba(255, 90, 74, 0.14);
-  --brand-red-glow: rgba(255, 90, 74, 0.4);
+  /* Marque (constante, ne change pas avec le thème) — même rouge que
+     les cartes Discord (#ff4655), pas le corail plus clair d'avant. */
+  --brand-red: #ff4655;
+  --brand-red-dim: #ff4655cc;
+  --brand-red-soft: rgba(255, 70, 85, 0.14);
+  --brand-red-glow: rgba(255, 70, 85, 0.38);
 
-  /* Accent secondaire chaud (ambre) — remplace le cyan froid de la
-     version précédente : sert pour les matchs à venir, les états
-     "en attente", et tout ce qui doit se distinguer du rouge sans
-     casser l'ambiance chaleureuse. */
-  --accent-amber: #ffb020;
-  --accent-amber-dim: #ffb020cc;
-  --accent-amber-soft: rgba(255, 176, 32, 0.15);
-  --accent-amber-glow: rgba(255, 176, 32, 0.4);
+  /* Accent secondaire (ambre) — réservé aux états "en attente / à
+     valider" (vote, match programmé), jamais utilisé comme couleur de
+     marque. Même teinte que la bannière de vote des cartes Discord. */
+  --accent-amber: #ffb84d;
+  --accent-amber-dim: #ffb84dcc;
+  --accent-amber-soft: rgba(255, 184, 77, 0.16);
+  --accent-amber-glow: rgba(255, 184, 77, 0.35);
 
   /* Alias conservés pour la compatibilité du code existant qui référence
-     encore --accent-cyan (repris ici en ambre, cf. ci-dessus). */
+     encore --accent-cyan. */
   --accent-cyan: var(--accent-amber);
   --accent-cyan-glow: var(--accent-amber-glow);
 
-  /* Rôles Valorant — palette plus vive et différenciée */
-  --role-duelist: #ff6b57;
-  --role-controller: #9b7bff;
-  --role-initiator: #ffb84d;
-  --role-sentinel: #2fd999;
-  --role-flex: #d9c9b8;
+  /* Rôles Valorant — alignés sur ROLE_COLORS dans exportComposition.js */
+  --role-duelist: #ff5f6d;
+  --role-controller: #7c8cff;
+  --role-initiator: #ffb54c;
+  --role-sentinel: #3ddc97;
+  --role-flex: #c7cdd6;
 
   /* Émeraude : validation / succès, décliné du vert sentinelle */
-  --accent-emerald: #2fd999;
-  --accent-emerald-soft: rgba(47, 217, 153, 0.15);
+  --accent-emerald: #3ddc97;
+  --accent-emerald-soft: rgba(61, 220, 151, 0.15);
 
-  /* Épaisseur de la barre d'accent colorée en haut des cartes
-     (.accent-card) — le repère visuel principal de statut/rôle,
-     à la place des fins coins en L de la version précédente. */
+  /* Texte clair constant sur une image/scrim sombre — utilisé pour les
+     badges posés sur les splash arts de map, quel que soit le thème
+     (clair ou sombre), puisque le fond y reste toujours sombre. */
+  --text-on-image: #ece8e1;
+  --scrim-chip: rgba(6, 10, 14, 0.7);
+  --scrim-chip-strong: rgba(6, 10, 14, 0.82);
+
+  /* Épaisseur de la barre d'accent colorée en haut des cartes */
   --accent-bar-size: 4px;
 
-  /* Typographie — une paire condensée/large bien plus marquée que
-     l'ancienne (Chakra Petch), pour un rendu "tableau de score"
-     immédiatement reconnaissable, gardée pour les titres et libellés
-     seulement (le corps de texte reste sur Inter, éprouvé et lisible). */
+  /* Taille du coin coupé (look "panneau tactique") — utilisée par la
+     classe utilitaire .cut-corner dans global.css. */
+  --corner-cut: 14px;
+  --corner-cut-sm: 8px;
+
+  /* Typographie — Barlow Condensed pour tout ce qui doit lire comme un
+     menu de jeu (nav, titres, libellés majuscules), Inter pour le
+     corps de texte (lisibilité). */
   --font-display: 'Barlow Condensed', 'Chakra Petch', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
-  /* Rayon / rythme — rayons plus généreux qu'avant (moins "boîte
-     tactique anguleuse", plus accueillant) */
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
+  /* Rayon — nettement plus anguleux qu'avant (moins "app accueillante",
+     plus "panneau tactique"). Les coins vraiment coupés (parallélogramme)
+     viennent de .cut-corner, pas d'un rayon. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -75,49 +88,50 @@
 }
 
 /* ---------- Thème sombre (par défaut) ----------
-   Brun-noir chaud plutôt que le bleu-nuit précédent : la différence se
-   voit dès qu'on regarde le fond, pas seulement les accents. */
+   Encre bleu-nuit quasi noire, comme le menu du jeu — pas le brun-noir
+   chaud de la version précédente. */
 :root,
 [data-theme='dark'] {
-  --bg-base: #171310;
-  --bg-elevated: #1e1812;
-  --bg-panel: rgba(36, 29, 22, 0.7);
-  --bg-panel-solid: #241d16;
-  --bg-hover: rgba(255, 224, 195, 0.055);
-  --border-subtle: rgba(255, 224, 195, 0.1);
-  --border-strong: rgba(255, 224, 195, 0.2);
-  --text-primary: #faf3ea;
-  --text-secondary: #c3b2a1;
-  --text-tertiary: #8c7c6d;
-  --shadow-soft: 0 8px 30px rgba(10, 6, 2, 0.4);
-  --shadow-lift: 0 20px 52px rgba(10, 6, 2, 0.55);
-  --ambient-glow-opacity: 0.5;
-  --overlay-scrim: rgba(10, 7, 4, 0.74);
-  --frame-color: rgba(255, 176, 32, 0.5);
+  --bg-base: #0a0e14;
+  --bg-elevated: #0f151d;
+  --bg-panel: rgba(19, 26, 35, 0.72);
+  --bg-panel-solid: #131a23;
+  --bg-hover: rgba(255, 255, 255, 0.055);
+  --border-subtle: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --text-primary: #ece8e1;
+  --text-secondary: #97a3ad;
+  --text-tertiary: #5c6a76;
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-lift: 0 20px 52px rgba(0, 0, 0, 0.6);
+  --ambient-glow-opacity: 0.55;
+  --overlay-scrim: rgba(5, 8, 12, 0.78);
+  --frame-color: rgba(255, 70, 85, 0.35);
 }
 
 /* ---------- Thème clair ----------
-   Crème chaude plutôt que gris-blanc froid. */
+   Gris-acier froid plutôt que crème chaude, pour rester dans le même
+   esprit tactique une fois la page éclaircie. */
 [data-theme='light'] {
-  --bg-base: #faf4ea;
+  --bg-base: #eef1f4;
   --bg-elevated: #ffffff;
-  --bg-panel: rgba(255, 255, 255, 0.78);
+  --bg-panel: rgba(255, 255, 255, 0.8);
   --bg-panel-solid: #ffffff;
-  --bg-hover: rgba(60, 35, 10, 0.045);
-  --border-subtle: rgba(60, 35, 10, 0.1);
-  --border-strong: rgba(60, 35, 10, 0.18);
-  --text-primary: #241a10;
-  --text-secondary: #6c5a48;
-  --text-tertiary: #a1907e;
-  --shadow-soft: 0 8px 24px rgba(60, 35, 10, 0.09);
-  --shadow-lift: 0 20px 44px rgba(60, 35, 10, 0.16);
-  --ambient-glow-opacity: 0.35;
-  --overlay-scrim: rgba(35, 22, 12, 0.45);
-  --brand-red: #e2422f;
-  --brand-red-glow: rgba(226, 66, 47, 0.28);
+  --bg-hover: rgba(10, 20, 30, 0.045);
+  --border-subtle: rgba(10, 20, 30, 0.1);
+  --border-strong: rgba(10, 20, 30, 0.2);
+  --text-primary: #10161d;
+  --text-secondary: #4a5560;
+  --text-tertiary: #808c96;
+  --shadow-soft: 0 8px 24px rgba(10, 20, 30, 0.1);
+  --shadow-lift: 0 20px 44px rgba(10, 20, 30, 0.16);
+  --ambient-glow-opacity: 0.28;
+  --overlay-scrim: rgba(10, 16, 22, 0.5);
+  --brand-red: #e2323f;
+  --brand-red-glow: rgba(226, 50, 63, 0.25);
   --accent-amber: #b5760a;
   --accent-amber-glow: rgba(181, 118, 10, 0.22);
   --accent-cyan: var(--accent-amber);
   --accent-cyan-glow: var(--accent-amber-glow);
-  --frame-color: rgba(181, 118, 10, 0.4);
+  --frame-color: rgba(226, 50, 63, 0.3);
 }
