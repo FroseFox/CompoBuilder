@@ -198,6 +198,7 @@ export default function MatchCenter() {
     const formatLabel = FORMAT_META[form.format].label
     const embedMaps = mapsPayload.map((m) => ({
       mapName: mapByUuid.get(m.mapUuid)?.name || 'Map inconnue',
+      mapThumbnail: mapByUuid.get(m.mapUuid)?.thumbnail || null,
       compositionName: compositionName(m.mapUuid, m.compositionId),
       ourScore: m.ourScore,
       opponentScore: m.opponentScore,
@@ -239,7 +240,7 @@ export default function MatchCenter() {
           renderMatchCard({
             opponentName: payload.opponentName,
             formatLabel: form.format,
-            mapNames: embedMaps.map((m) => m.mapName),
+            maps: embedMaps.map((m) => ({ name: m.mapName, thumbnail: m.mapThumbnail })),
             matchDate: payload.matchDate,
             matchTime: payload.matchTime,
           })
