@@ -85,6 +85,7 @@ create table if not exists public.matches (
   opponent_name text not null,
   format text not null default 'bo1' check (format in ('bo1', 'bo3', 'bo5')),
   match_date date,
+  match_time time,
   notes text not null default '',
   position integer not null default 0,
   opponent_logo_url text,

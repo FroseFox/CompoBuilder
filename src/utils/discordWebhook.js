@@ -68,6 +68,51 @@ export async function sendDiscordVoteMessage(payload) {
   }
 }
 
+/** Convertit un Blob en base64 — supabase.functions.invoke sérialise le
+ * corps en JSON, donc l'image (PNG binaire) doit être encodée avant de
+ * pouvoir y voyager ; l'edge function discord-notify la redécode côté
+ * serveur pour l'envoyer à Discord en pièce jointe multipart. */
+async function blobToBase64(blob) {
+  const buffer = await blob.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  // Découpé en morceaux : String.fromCharCode(...bytes) sur une image de
+  // plusieurs centaines de Ko peut dépasser la limite d'arguments de la
+  // fonction selon le moteur JS.
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+  }
+  return btoa(binary)
+}
+
+/**
+ * Envoie une image (carte de vote de compo, annonce de match) comme
+ * message Discord, sans aucun texte d'accompagnement — l'image porte
+ * elle-même toute l'information (voir renderCompositionCard mode 'vote'
+ * et renderMatchCard). Comme sendDiscordVoteMessage : renvoie l'id du
+ * message et du salon pour y ajouter les réactions ✅/❌ ensuite, ou
+ * `null` en cas d'échec (best effort).
+ * @param {object} params
+ * @param {Blob} params.blob PNG généré par un canvas (voir exportComposition.js / matchCard.js).
+ * @param {string} params.filename
+ * @returns {Promise<{ messageId: string, channelId: string } | null>}
+ */
+export async function sendDiscordVoteImage({ blob, filename }) {
+  try {
+    const imageBase64 = await blobToBase64(blob)
+    const { data, error } = await supabase.functions.invoke('discord-notify', {
+      body: { imageBase64, imageFilename: filename, wait: true },
+    })
+    if (error) throw error
+    if (!data?.ok || !data?.message?.id || !data?.message?.channel_id) return null
+    return { messageId: data.message.id, channelId: data.message.channel_id }
+  } catch (err) {
+    console.error("Envoi de l'image de vote Discord impossible :", err)
+    return null
+  }
+}
+
 /**
  * @param {object} params
  * @param {string} params.opponentName

@@ -49,7 +49,10 @@ function loadImage(src) {
   })
 }
 
-function roundRect(ctx, x, y, w, h, r) {
+// Exportée : réutilisée par matchCard.js (carte d'annonce de match), même
+// identité visuelle que la carte de composition ci-dessous — évite de
+// dupliquer ces primitives de dessin.
+export function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
   ctx.arcTo(x + w, y, x + w, y + h, r)
@@ -59,7 +62,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
-function hexWithAlpha(hex, alpha) {
+export function hexWithAlpha(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
@@ -72,9 +75,15 @@ function hexWithAlpha(hex, alpha) {
  * @param {{name:string,status:string,slots:Array<{agentUuid:?string,playerId:?string}>}} params.composition
  * @param {Map<string,object>} params.agentByUuid
  * @param {Record<string,{pseudo:string,color:string}>} params.players
+ * @param {'export'|'vote'} [params.mode] 'export' (défaut) : pastille de
+ *   statut habituelle, pour le bouton "Exporter" de l'Editor. 'vote' :
+ *   remplace la pastille par une bannière d'appel au vote — utilisé
+ *   quand cette image est envoyée sur Discord à la place du message
+ *   texte (voir sendDiscordVoteImage), pour que l'instruction de vote
+ *   soit portée par l'image elle-même.
  * @returns {Promise<Blob>} PNG
  */
-export async function renderCompositionCard({ map, composition, agentByUuid, players }) {
+export async function renderCompositionCard({ map, composition, agentByUuid, players, mode = 'export' }) {
   const SCALE = 2
   const W = 1000
   const H = 430
@@ -108,27 +117,50 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
   ctx.font = '600 15px Arial'
   ctx.fillText(composition.name, 40, 108)
 
-  // pastille de statut, en haut à droite
-  const meta = STATUS_META[composition.status] || STATUS_META.todo
-  const statusColor = STATUS_CANVAS_COLORS[composition.status] || STATUS_CANVAS_COLORS[STATUS.TODO]
-  const label = meta.label.toUpperCase()
-  ctx.font = '700 12px Arial'
-  const labelWidth = ctx.measureText(label).width
-  const pillH = 30
-  const pillW = labelWidth + 46
-  const pillX = W - 40 - pillW
-  const pillY = 38
-  roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2)
-  ctx.fillStyle = hexWithAlpha(statusColor, 0.14)
-  ctx.fill()
-  ctx.strokeStyle = statusColor
-  ctx.lineWidth = 1
-  ctx.stroke()
-  ctx.fillStyle = statusColor
-  ctx.beginPath()
-  ctx.arc(pillX + 18, pillY + pillH / 2, 4, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillText(label, pillX + 30, pillY + pillH / 2 + 4)
+  if (mode === 'vote') {
+    // Bannière d'appel au vote, pleine largeur — remplace la pastille
+    // de statut : l'image ne s'accompagne d'aucun texte Discord, cette
+    // instruction doit donc être lisible directement sur l'image.
+    const bannerY = 34
+    const bannerH = 40
+    const voteColor = '#ffb84d'
+    roundRect(ctx, 40, bannerY, W - 80, bannerH, 10)
+    ctx.fillStyle = hexWithAlpha(voteColor, 0.16)
+    ctx.fill()
+    ctx.strokeStyle = voteColor
+    ctx.lineWidth = 1
+    ctx.stroke()
+    ctx.fillStyle = voteColor
+    ctx.font = '700 15px Arial'
+    ctx.textAlign = 'center'
+    // Pas d'emoji "🗳️" ici : moins courant que ✅/❌, il s'affiche mal
+    // (glyphe de repli) sur certains systèmes une fois figé dans le PNG —
+    // contrairement à un bouton d'UI, une image Discord ne se corrige pas.
+    ctx.fillText('VOTE — Réagissez ✅ pour valider, ❌ pour refuser', W / 2, bannerY + bannerH / 2 + 5)
+    ctx.textAlign = 'left'
+  } else {
+    // pastille de statut, en haut à droite
+    const meta = STATUS_META[composition.status] || STATUS_META.todo
+    const statusColor = STATUS_CANVAS_COLORS[composition.status] || STATUS_CANVAS_COLORS[STATUS.TODO]
+    const label = meta.label.toUpperCase()
+    ctx.font = '700 12px Arial'
+    const labelWidth = ctx.measureText(label).width
+    const pillH = 30
+    const pillW = labelWidth + 46
+    const pillX = W - 40 - pillW
+    const pillY = 38
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2)
+    ctx.fillStyle = hexWithAlpha(statusColor, 0.14)
+    ctx.fill()
+    ctx.strokeStyle = statusColor
+    ctx.lineWidth = 1
+    ctx.stroke()
+    ctx.fillStyle = statusColor
+    ctx.beginPath()
+    ctx.arc(pillX + 18, pillY + pillH / 2, 4, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillText(label, pillX + 30, pillY + pillH / 2 + 4)
+  }
 
   ctx.strokeStyle = 'rgba(255,255,255,0.08)'
   ctx.beginPath()
@@ -221,13 +253,14 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
   ctx.fillStyle = '#5c6a76'
   ctx.font = '500 11px Arial'
   const dateStr = new Date().toLocaleDateString('fr-FR')
-  ctx.fillText(`Généré le ${dateStr} · frosefox.github.io/CompoBuilder`, W - 40, H - 26)
+  const footerVerb = mode === 'vote' ? 'Vote lancé le' : 'Généré le'
+  ctx.fillText(`${footerVerb} ${dateStr} · frosefox.github.io/CompoBuilder`, W - 40, H - 26)
   ctx.textAlign = 'left'
 
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
 }
 
-function slugify(text) {
+export function slugify(text) {
   return text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')

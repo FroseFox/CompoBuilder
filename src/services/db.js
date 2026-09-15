@@ -80,6 +80,7 @@ function rowToMatch(row) {
     opponentName: row.opponent_name,
     format: row.format,
     matchDate: row.match_date,
+    matchTime: row.match_time ?? null,
     notes: row.notes,
     // Validation de présence (comptage global des réactions ✅/❌ sur le
     // message Discord envoyé à la programmation) — null tant qu'aucune
@@ -249,6 +250,7 @@ export async function insertMatch(draft, mapsDraft = []) {
       opponent_name: draft.opponentName,
       format: draft.format || 'bo1',
       match_date: draft.matchDate || null,
+      match_time: draft.matchTime || null,
       notes: draft.notes || '',
     })
     .select()
@@ -263,6 +265,7 @@ export async function updateMatchRow(id, patch, mapsDraft) {
   if ('opponentName' in patch) dbPatch.opponent_name = patch.opponentName
   if ('format' in patch) dbPatch.format = patch.format
   if ('matchDate' in patch) dbPatch.match_date = patch.matchDate
+  if ('matchTime' in patch) dbPatch.match_time = patch.matchTime
   if ('notes' in patch) dbPatch.notes = patch.notes
   if ('presenceMessageId' in patch) dbPatch.presence_message_id = patch.presenceMessageId
   if ('presenceChannelId' in patch) dbPatch.presence_channel_id = patch.presenceChannelId

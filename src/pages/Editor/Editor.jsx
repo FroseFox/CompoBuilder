@@ -8,8 +8,9 @@ import { useToast } from '../../context/ToastContext'
 import { useSettings } from '../../context/SettingsContext'
 import { getCompsForMap } from '../../utils/compositions'
 import { STATUS_META } from '../../utils/storage'
-import { sendDiscordMessage, sendDiscordVoteMessage, compositionValidatedEmbed, compositionVoteEmbed } from '../../utils/discordWebhook'
+import { sendDiscordMessage, sendDiscordVoteImage, compositionValidatedEmbed } from '../../utils/discordWebhook'
 import { addVoteReactions, getVoteCounts } from '../../utils/discordBot'
+import { renderCompositionCard, compositionFileName } from '../../utils/exportComposition'
 import AgentSlot from '../../components/AgentSlot/AgentSlot'
 import AgentSelectionModal from '../../components/AgentSelectionModal/AgentSelectionModal'
 import CompositionTabs from '../../components/CompositionTabs/CompositionTabs'
@@ -143,11 +144,13 @@ export default function Editor() {
     if (!webhookUrl || voteBusy) return
     setVoteBusy(true)
     try {
-      const sent = await sendDiscordVoteMessage(
-        compositionVoteEmbed({ mapName: map?.name, compositionName: composition.name })
-      )
+      // Image seule (pas de texte Discord) : la bannière d'appel au vote
+      // est dessinée directement sur la carte — voir renderCompositionCard
+      // mode 'vote' dans exportComposition.js.
+      const blob = await renderCompositionCard({ map, composition, agentByUuid, players, mode: 'vote' })
+      const sent = await sendDiscordVoteImage({ blob, filename: compositionFileName(map, composition) })
       if (!sent) {
-        pushToast("Impossible d'envoyer le message de vote sur Discord.", 'error')
+        pushToast("Impossible d'envoyer l'image de vote sur Discord.", 'error')
         return
       }
       const reacted = await addVoteReactions(sent)

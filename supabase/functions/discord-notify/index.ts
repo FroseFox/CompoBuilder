@@ -54,7 +54,18 @@ Deno.serve(async (req: Request) => {
     .single()
   if (!profile?.is_admin) return json({ error: "Réservé aux administrateurs." }, 403)
 
-  let body: { payload?: unknown; testUrl?: string; wait?: boolean }
+  let body: {
+    payload?: unknown
+    testUrl?: string
+    wait?: boolean
+    // Image "carte" (vote de compo, annonce de match) à envoyer comme
+    // pièce jointe plutôt que — ou en plus de — l'embed texte habituel.
+    // Encodée en base64 côté client (canvas.toBlob → arrayBuffer) : on
+    // ne peut pas transmettre un Blob binaire tel quel dans le JSON
+    // envoyé à supabase.functions.invoke.
+    imageBase64?: string
+    imageFilename?: string
+  }
   try {
     body = await req.json()
   } catch {
@@ -88,11 +99,29 @@ Deno.serve(async (req: Request) => {
   const url = body.wait ? `${webhookUrl}${webhookUrl.includes('?') ? '&' : '?'}wait=true` : webhookUrl
 
   try {
-    const discordRes = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(discordPayload),
-    })
+    let discordRes: Response
+    if (body.imageBase64) {
+      // Envoi multipart : la "carte" (PNG) comme pièce jointe, avec un
+      // payload_json minimal (juste le nom d'expéditeur — pas d'embed
+      // texte, l'image porte toute l'information par elle-même).
+      let bytes: Uint8Array
+      try {
+        const binary = atob(body.imageBase64)
+        bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+      } catch {
+        return json({ error: "Image invalide (décodage base64 échoué)." }, 400)
+      }
+      const form = new FormData()
+      form.append("payload_json", JSON.stringify(discordPayload))
+      form.append("files[0]", new Blob([bytes], { type: "image/png" }), body.imageFilename || "card.png")
+      discordRes = await fetch(url, { method: "POST", body: form })
+    } else {
+      discordRes = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(discordPayload),
+      })
+    }
     let message: { id?: string; channel_id?: string } | null = null
     if (body.wait && discordRes.ok) {
       try {

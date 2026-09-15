@@ -18,8 +18,9 @@ import {
   MATCH_FORMAT,
   MATCH_RESULT_META,
 } from '../../utils/matches'
-import { sendDiscordMessage, sendDiscordVoteMessage, matchResultEmbed, matchScheduledEmbed } from '../../utils/discordWebhook'
+import { sendDiscordMessage, sendDiscordVoteImage, matchResultEmbed } from '../../utils/discordWebhook'
 import { addVoteReactions, getVoteCounts } from '../../utils/discordBot'
+import { renderMatchCard, matchCardFileName } from '../../utils/matchCard'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
 import Loader from '../../components/Loader/Loader'
 import './MatchCenter.css'
@@ -30,6 +31,7 @@ const emptyForm = {
   opponentName: '',
   format: MATCH_FORMAT.BO1,
   matchDate: '',
+  matchTime: '',
   notes: '',
   maps: [emptyMapRow()],
 }
@@ -123,6 +125,7 @@ export default function MatchCenter() {
       opponentName: match.opponentName,
       format: match.format,
       matchDate: match.matchDate || '',
+      matchTime: match.matchTime || '',
       notes: match.notes || '',
       maps: mapsToFormRows(match),
     })
@@ -139,6 +142,7 @@ export default function MatchCenter() {
       opponentName: match.opponentName,
       format: match.format,
       matchDate: match.matchDate || '',
+      matchTime: match.matchTime || '',
       notes: match.notes || '',
       maps: mapsToFormRows(match),
     })
@@ -187,6 +191,7 @@ export default function MatchCenter() {
       opponentName: form.opponentName.trim(),
       format: form.format,
       matchDate: form.matchDate || null,
+      matchTime: form.matchTime || null,
       notes: form.notes.trim(),
     }
 
@@ -224,22 +229,26 @@ export default function MatchCenter() {
       if (id && formMode === 'scheduled') {
         pushToast('Match programmé.', 'success')
         if (webhookUrl) {
-          // sendDiscordVoteMessage (pas sendDiscordMessage) : on a besoin
-          // de l'id du message pour y ajouter les réactions ✅/❌ de
+          // Image seule (pas de texte Discord) : Format/Map(s)/Date/Heure
+          // et l'instruction de présence sont dessinés directement sur la
+          // carte — voir renderMatchCard dans utils/matchCard.js.
+          // sendDiscordVoteImage (pas sendDiscordMessage) : on a besoin de
+          // l'id du message pour y ajouter les réactions ✅/❌ de
           // validation de présence, et pouvoir compter les réponses
           // ensuite (voir handleSyncPresence).
-          sendDiscordVoteMessage(
-            matchScheduledEmbed({
-              opponentName: payload.opponentName,
-              formatLabel,
-              matchDate: payload.matchDate,
-              maps: embedMaps,
-            })
-          ).then(async (sent) => {
-            if (!sent) return
-            await addVoteReactions(sent)
-            await updateMatch(id, { presenceMessageId: sent.messageId, presenceChannelId: sent.channelId })
+          renderMatchCard({
+            opponentName: payload.opponentName,
+            formatLabel: form.format,
+            mapNames: embedMaps.map((m) => m.mapName),
+            matchDate: payload.matchDate,
+            matchTime: payload.matchTime,
           })
+            .then((blob) => sendDiscordVoteImage({ blob, filename: matchCardFileName(payload.opponentName) }))
+            .then(async (sent) => {
+              if (!sent) return
+              await addVoteReactions(sent)
+              await updateMatch(id, { presenceMessageId: sent.messageId, presenceChannelId: sent.channelId })
+            })
         }
       } else if (id) {
         pushToast('Match enregistré.', 'success')
@@ -366,6 +375,7 @@ export default function MatchCenter() {
                     {match.matchDate
                       ? new Date(match.matchDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
                       : 'Date à définir'}
+                    {match.matchTime ? ` à ${match.matchTime.replace(':', 'h')}` : ''}
                   </div>
                   <div className="upcoming-match__info">
                     <span className="upcoming-match__opponent">{match.opponentName}</span>
@@ -670,15 +680,25 @@ export default function MatchCenter() {
                 )}
               </div>
 
-              <label className="player-form__field">
-                <span>Date{formMode === 'played' ? ' (optionnel)' : ''}</span>
-                <input
-                  type="date"
-                  required={formMode === 'scheduled'}
-                  value={form.matchDate}
-                  onChange={(e) => setForm((f) => ({ ...f, matchDate: e.target.value }))}
-                />
-              </label>
+              <div className="match-center__form-row">
+                <label className="player-form__field">
+                  <span>Date{formMode === 'played' ? ' (optionnel)' : ''}</span>
+                  <input
+                    type="date"
+                    required={formMode === 'scheduled'}
+                    value={form.matchDate}
+                    onChange={(e) => setForm((f) => ({ ...f, matchDate: e.target.value }))}
+                  />
+                </label>
+                <label className="player-form__field">
+                  <span>Heure (optionnel)</span>
+                  <input
+                    type="time"
+                    value={form.matchTime}
+                    onChange={(e) => setForm((f) => ({ ...f, matchTime: e.target.value }))}
+                  />
+                </label>
+              </div>
 
               <label className="player-form__field">
                 <span>Notes (optionnel)</span>
