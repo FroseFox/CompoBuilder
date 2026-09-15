@@ -86,7 +86,13 @@ export function hexWithAlpha(hex, alpha) {
 export async function renderCompositionCard({ map, composition, agentByUuid, players, mode = 'export' }) {
   const SCALE = 2
   const W = 1000
-  const H = 430
+  // En mode 'vote', la bannière d'appel au vote a besoin de sa propre
+  // ligne sous l'en-tête (nom de map + composition) : les caser sur la
+  // même bande verticale faisait chevaucher la bannière et le titre
+  // (bug remonté par l'équipe). On agrandit donc le canvas de la
+  // hauteur de cette ligne plutôt que de la faire tenir de force.
+  const VOTE_BANNER_EXTRA = 56
+  const H = 430 + (mode === 'vote' ? VOTE_BANNER_EXTRA : 0)
   const SLOT_W = 176
 
   const canvas = document.createElement('canvas')
@@ -121,7 +127,9 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
     // Bannière d'appel au vote, pleine largeur — remplace la pastille
     // de statut : l'image ne s'accompagne d'aucun texte Discord, cette
     // instruction doit donc être lisible directement sur l'image.
-    const bannerY = 34
+    // Placée sous l'en-tête (pas à sa hauteur, voir VOTE_BANNER_EXTRA
+    // ci-dessus) pour ne pas chevaucher le nom de la map / composition.
+    const bannerY = 126
     const bannerH = 40
     const voteColor = '#ffb84d'
     roundRect(ctx, 40, bannerY, W - 80, bannerH, 10)
@@ -162,15 +170,16 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
     ctx.fillText(label, pillX + 30, pillY + pillH / 2 + 4)
   }
 
+  const dividerY = 140 + (mode === 'vote' ? VOTE_BANNER_EXTRA : 0)
   ctx.strokeStyle = 'rgba(255,255,255,0.08)'
   ctx.beginPath()
-  ctx.moveTo(40, 140)
-  ctx.lineTo(W - 40, 140)
+  ctx.moveTo(40, dividerY)
+  ctx.lineTo(W - 40, dividerY)
   ctx.stroke()
 
   // ---------- Emplacements d'agents ----------
   const slots = composition.slots
-  const rowY = 168
+  const rowY = 168 + (mode === 'vote' ? VOTE_BANNER_EXTRA : 0)
   const iconSize = 84
   const startX = (W - SLOT_W * slots.length) / 2
 

@@ -153,7 +153,7 @@ export default function Editor() {
         pushToast("Impossible d'envoyer l'image de vote sur Discord.", 'error')
         return
       }
-      const reacted = await addVoteReactions(sent)
+      const { ok: reacted, error: reactError } = await addVoteReactions(sent)
       await setVoteState(mapId, composition.id, {
         voteStatus: 'open',
         voteMessageId: sent.messageId,
@@ -162,7 +162,11 @@ export default function Editor() {
       pushToast(
         reacted
           ? 'Vote lancé sur Discord — ✅/❌ à retrouver sur le message.'
-          : "Vote lancé, mais l'ajout automatique des réactions a échoué (bot Discord configuré ?). Ajoutez ✅ et ❌ manuellement sur le message.",
+          // On affiche le message d'erreur renvoyé par le bot (secret
+          // manquant, permissions Discord…) plutôt qu'un texte générique :
+          // sans ça, la seule piste de diagnostic était la console du
+          // navigateur, que personne ne pense à ouvrir.
+          : `Vote lancé, mais l'ajout automatique des réactions a échoué : ${reactError || 'raison inconnue'}. Ajoutez ✅ et ❌ manuellement sur le message.`,
         reacted ? 'success' : 'error'
       )
     } finally {
@@ -185,9 +189,9 @@ export default function Editor() {
     if (voteBusy) return
     setVoteBusy(true)
     try {
-      const counts = await getVoteCounts({ channelId: composition.voteChannelId, messageId: composition.voteMessageId })
+      const { counts, error } = await getVoteCounts({ channelId: composition.voteChannelId, messageId: composition.voteMessageId })
       if (!counts) {
-        pushToast('Impossible de récupérer les votes (bot Discord non configuré, ou message supprimé).', 'error')
+        pushToast(`Impossible de récupérer les votes : ${error || 'raison inconnue'}.`, 'error')
         return
       }
       setVoteResolvePreview({ ...counts, outcome: counts.yes > counts.no ? 'validated' : 'rejected' })

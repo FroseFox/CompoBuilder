@@ -246,7 +246,14 @@ export default function MatchCenter() {
             .then((blob) => sendDiscordVoteImage({ blob, filename: matchCardFileName(payload.opponentName) }))
             .then(async (sent) => {
               if (!sent) return
-              await addVoteReactions(sent)
+              const { ok: reacted, error: reactError } = await addVoteReactions(sent)
+              // On affiche le message d'erreur renvoyé par le bot (secret
+              // manquant, permissions Discord…) plutôt que d'échouer en
+              // silence — sinon la seule piste était la console du
+              // navigateur, que personne ne pense à ouvrir.
+              if (!reacted) {
+                pushToast(`Image envoyée, mais l'ajout des réactions ✅/❌ a échoué : ${reactError || 'raison inconnue'}.`, 'error')
+              }
               await updateMatch(id, { presenceMessageId: sent.messageId, presenceChannelId: sent.channelId })
             })
         }
@@ -278,9 +285,9 @@ export default function MatchCenter() {
     if (!match.presenceMessageId || !match.presenceChannelId || syncingPresenceId) return
     setSyncingPresenceId(match.id)
     try {
-      const counts = await getVoteCounts({ channelId: match.presenceChannelId, messageId: match.presenceMessageId })
+      const { counts, error } = await getVoteCounts({ channelId: match.presenceChannelId, messageId: match.presenceMessageId })
       if (!counts) {
-        pushToast('Impossible de récupérer la présence (bot Discord non configuré, ou message supprimé).', 'error')
+        pushToast(`Impossible de récupérer la présence : ${error || 'raison inconnue'}.`, 'error')
         return
       }
       await updateMatch(match.id, {

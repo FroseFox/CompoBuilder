@@ -13,10 +13,31 @@
 
 import { supabase } from '../services/supabaseClient'
 
+// La fonction discord-bot répond toujours avec un corps JSON { error }
+// explicite (bot non configuré, Discord a refusé la requête, etc.),
+// mais supabase.functions.invoke() rejette dès qu'un statut non-2xx est
+// reçu et remplace ce corps par une FunctionsHttpError générique dont
+// le .message ne contient PAS le texte utile — celui-ci reste dans la
+// réponse HTTP portée par `error.context`. Sans ça, seul un
+// console.error (invisible pour quelqu'un qui n'ouvre pas les outils
+// dev du navigateur) donnait un indice, d'où le "ça ne marche pas,
+// sans plus de détails" côté utilisateur : on extrait donc ce message
+// pour pouvoir l'afficher directement dans l'app (toast).
+async function extractFunctionError(err) {
+  const fallback = err?.message || 'Erreur inconnue.'
+  try {
+    if (err?.context?.json) return (await err.context.json())?.error || fallback
+    if (err?.context?.text) return (await err.context.text()) || fallback
+  } catch {
+    // Le corps n'a pas pu être relu (déjà consommé, etc.) — on garde le fallback.
+  }
+  return fallback
+}
+
 /**
  * Ajoute les deux réactions ✅/❌ à un message déjà envoyé (voir
  * sendDiscordVoteMessage dans discordWebhook.js pour l'obtenir).
- * @returns {Promise<boolean>} succès
+ * @returns {Promise<{ ok: boolean, error: string|null }>}
  */
 export async function addVoteReactions({ channelId, messageId }) {
   try {
@@ -24,17 +45,17 @@ export async function addVoteReactions({ channelId, messageId }) {
       body: { action: 'addReactions', channelId, messageId },
     })
     if (error) throw error
-    return Boolean(data?.ok)
+    return { ok: Boolean(data?.ok), error: data?.ok ? null : data?.error || null }
   } catch (err) {
-    console.error("Impossible d'ajouter les réactions de vote Discord :", err)
-    return false
+    const message = await extractFunctionError(err)
+    console.error("Impossible d'ajouter les réactions de vote Discord :", message)
+    return { ok: false, error: message }
   }
 }
 
 /**
  * Compte les votants ✅/❌ sur un message (hors réaction du bot lui-même).
- * @returns {Promise<{ yes: number, no: number } | null>} null si le
- *   comptage a échoué (bot non configuré, message supprimé…).
+ * @returns {Promise<{ counts: { yes: number, no: number }|null, error: string|null }>}
  */
 export async function getVoteCounts({ channelId, messageId }) {
   try {
@@ -42,10 +63,11 @@ export async function getVoteCounts({ channelId, messageId }) {
       body: { action: 'getReactionCounts', channelId, messageId },
     })
     if (error) throw error
-    if (!data?.ok || !data?.counts) return null
-    return data.counts
+    if (!data?.ok || !data?.counts) return { counts: null, error: data?.error || 'Réponse inattendue du bot Discord.' }
+    return { counts: data.counts, error: null }
   } catch (err) {
-    console.error('Impossible de compter les votes Discord :', err)
-    return null
+    const message = await extractFunctionError(err)
+    console.error('Impossible de compter les votes Discord :', message)
+    return { counts: null, error: message }
   }
 }
