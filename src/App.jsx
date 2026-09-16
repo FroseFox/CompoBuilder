@@ -9,6 +9,7 @@ import { DataProvider } from './context/DataContext'
 import { CompositionsProvider } from './context/CompositionsContext'
 import { PlayersProvider } from './context/PlayersContext'
 import { MatchesProvider } from './context/MatchesContext'
+import { AvailabilityProvider } from './context/AvailabilityContext'
 import { ToastProvider } from './context/ToastContext'
 import { useGameDataSync } from './hooks/useGameDataSync'
 import { isSupabaseConfigured } from './services/supabaseClient'
@@ -27,6 +28,7 @@ const Team = lazy(() => import('./pages/Team/Team'))
 const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'))
 const MatchCenter = lazy(() => import('./pages/MatchCenter/MatchCenter'))
 const Stats = lazy(() => import('./pages/Stats/Stats'))
+const Availability = lazy(() => import('./pages/Availability/Availability'))
 
 /** Rendu à l'intérieur du HashRouter : gère la transition animée entre les pages. */
 function AppRoutes() {
@@ -52,6 +54,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<PageTransition><Suspense fallback={pageFallback}><Dashboard /></Suspense></PageTransition>} />
         <Route path="/matchcenter" element={<PageTransition><Suspense fallback={pageFallback}><MatchCenter /></Suspense></PageTransition>} />
         <Route path="/stats" element={<PageTransition><Suspense fallback={pageFallback}><Stats /></Suspense></PageTransition>} />
+        <Route path="/disponibilites" element={<PageTransition><Suspense fallback={pageFallback}><Availability /></Suspense></PageTransition>} />
         {/* Toute URL inconnue renvoie vers l'accueil plutôt que sur une page blanche. */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -118,11 +121,13 @@ export default function App() {
               <SettingsProvider>
                 <DataProvider>
                   <PlayersProvider>
-                    <CompositionsProvider>
-                      <MatchesProvider>
-                        <AppShell />
-                      </MatchesProvider>
-                    </CompositionsProvider>
+                    <AvailabilityProvider>
+                      <CompositionsProvider>
+                        <MatchesProvider>
+                          <AppShell />
+                        </MatchesProvider>
+                      </CompositionsProvider>
+                    </AvailabilityProvider>
                   </PlayersProvider>
                 </DataProvider>
               </SettingsProvider>

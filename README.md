@@ -120,12 +120,14 @@ src/
     Editor/                   # éditeur : compositions, statut, notes, joueurs
     Team/                     # gestion de l'effectif
     Dashboard/                # statistiques globales de préparation
+    Availability/              # grille de disponibilités des joueurs
   context/
     ThemeContext.jsx           # thème clair/sombre (local au navigateur)
     AuthContext.jsx             # session Supabase + statut administrateur
     DataContext.jsx             # données API Valorant (maps, agents)
     CompositionsContext.jsx    # compositions : lecture, écriture, temps réel (Supabase)
     PlayersContext.jsx         # effectif : lecture, écriture, temps réel (Supabase)
+    AvailabilityContext.jsx    # disponibilités : lecture, écriture, temps réel (Supabase)
     ToastContext.jsx           # notifications
   services/
     valorantApi.js             # appels à valorant-api.com
@@ -150,6 +152,7 @@ supabase/
 | `agents` | Référence des agents (uuid, nom, rôle) — synchronisée automatiquement |
 | `players` | Effectif de l'équipe (pseudo, rôle principal/secondaire, couleur) |
 | `compositions` | Une composition = map associée, nom, 5 emplacements (`slots` : agent + joueur assigné), statut, notes, date de dernière modification |
+| `player_availability` | Créneaux (jour × période) où un joueur s'est déclaré disponible — voir la section Sécurité ci-dessous, écriture ouverte à tous par exception |
 | `profiles` | Un compte utilisateur = administrateur ou lecture seule |
 
 Chaque map peut avoir **plusieurs compositions** (principale, anti-rush,
@@ -166,6 +169,19 @@ publique. La protection des données repose sur les policies **Row Level
 Security** définies dans `supabase/schema.sql` : lecture ouverte à tous,
 écriture réservée aux comptes marqués administrateur. Voir
 GUIDE_SUPABASE.md, section "Pourquoi c'est sans danger", pour le détail.
+
+**Exception : `player_availability`.** Contrairement à toutes les autres
+tables, l'écriture (ajout/suppression d'un créneau) y est ouverte à tout le
+monde, pas seulement aux comptes admin — exactement comme `team_settings`
+est l'exception inverse (lecture *et* écriture réservées aux admins, pour
+protéger le webhook Discord). L'objectif de la page Disponibilités est que
+chaque joueur coche directement ses propres créneaux sans avoir de compte
+ni de validation admin, comme le reste du site fonctionne déjà sans
+comptes individuels par joueur. Revers assumé : quiconque a le lien du
+site peut aussi modifier la disponibilité d'un *autre* joueur (rien
+n'identifie qui coche quoi), un peu comme un tableur partagé en écriture
+libre. Si ça devient un problème dans la pratique, il faudra réintroduire
+un contrôle (un compte par joueur, par exemple).
 
 Compléments :
 - **Content-Security-Policy** : injectée automatiquement dans le HTML du
@@ -223,6 +239,15 @@ Compléments :
 - Bilan global (victoires/défaites), forme récente
 - Performance par map, par composition et par adversaire
 - Statistiques par joueur, déduites des compositions utilisées en match
+
+**Disponibilités**
+- Grille hebdomadaire (7 jours × Matin/Après-midi/Soir) : chaque joueur se
+  sélectionne dans la liste puis coche ses créneaux libres, sans compte ni
+  validation admin (voir la section Sécurité pour le compromis assumé)
+- Chaque case affiche le nombre et les avatars des joueurs disponibles à ce
+  créneau ; le créneau où le plus de monde est disponible est mis en
+  évidence automatiquement
+- Synchronisé en temps réel comme le reste du site (Supabase Realtime)
 
 **Recherche globale (⌘K)**
 - Recherche unifiée sur les maps, les joueurs et les agents

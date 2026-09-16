@@ -19,7 +19,7 @@
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
   padding: 0 var(--space-5);
   height: 64px;
 }
@@ -92,12 +92,12 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 13px;
+  gap: 6px;
+  padding: 0 6px;
   font-family: var(--font-display);
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--text-secondary);
   transition: color var(--dur-fast) var(--ease-out);
@@ -107,7 +107,7 @@
 .topnav__link-content {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
 }
 
 .topnav__link svg {

@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/matchcenter', label: 'Match Center', icon: MatchIcon },
   { to: '/stats', label: 'Statistiques', icon: StatsIcon },
+  { to: '/disponibilites', label: 'Dispos', icon: ClockIcon },
 ]
 
 export default function Navbar() {
@@ -251,6 +252,15 @@ function StatsIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <path d="M4 20V10M12 20V4M20 20v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 7v5.5l3.8 2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

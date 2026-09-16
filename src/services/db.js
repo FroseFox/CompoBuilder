@@ -133,6 +133,43 @@ export async function deletePlayerRow(id) {
   if (error) throw error
 }
 
+// ---------- Disponibilités des joueurs ----------
+
+function rowToAvailability(row) {
+  return {
+    id: row.id,
+    playerId: row.player_id,
+    day: row.day_of_week,
+    period: row.period,
+  }
+}
+
+export async function fetchAvailability() {
+  const { data, error } = await supabase.from('player_availability').select('*')
+  if (error) throw error
+  return data.map(rowToAvailability)
+}
+
+export async function addAvailabilitySlot(playerId, day, period) {
+  const { data, error } = await supabase
+    .from('player_availability')
+    .insert({ player_id: playerId, day_of_week: day, period })
+    .select()
+    .single()
+  if (error) throw error
+  return rowToAvailability(data)
+}
+
+export async function removeAvailabilitySlot(playerId, day, period) {
+  const { error } = await supabase
+    .from('player_availability')
+    .delete()
+    .eq('player_id', playerId)
+    .eq('day_of_week', day)
+    .eq('period', period)
+  if (error) throw error
+}
+
 // ---------- Compositions ----------
 
 export async function fetchCompositions() {
@@ -320,4 +357,4 @@ export async function updateTeamSettingsRow(patch) {
   return rowToTeamSettings(data)
 }
 
-export { rowToComposition, rowToPlayer, rowToMatch, rowToMatchMap }
+export { rowToComposition, rowToPlayer, rowToMatch, rowToMatchMap, rowToAvailability }

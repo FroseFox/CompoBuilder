@@ -121,6 +121,23 @@ create index if not exists match_maps_match_id_idx on public.match_maps (match_i
 create index if not exists match_maps_map_uuid_idx on public.match_maps (map_uuid);
 create index if not exists match_maps_composition_id_idx on public.match_maps (composition_id);
 
+-- ---------- Disponibilités des joueurs ----------
+-- Grille hebdomadaire (jour × période) : chaque ligne = un joueur
+-- disponible sur ce créneau. Voir la section Sécurité plus bas pour la
+-- policy d'écriture, volontairement plus ouverte que le reste du schéma.
+
+create table if not exists public.player_availability (
+  id uuid primary key default gen_random_uuid(),
+  player_id uuid not null references public.players(id) on delete cascade,
+  -- 0 = lundi ... 6 = dimanche
+  day_of_week smallint not null check (day_of_week between 0 and 6),
+  period text not null check (period in ('morning', 'afternoon', 'evening')),
+  created_at timestamptz not null default now(),
+  unique (player_id, day_of_week, period)
+);
+
+create index if not exists player_availability_player_id_idx on public.player_availability (player_id);
+
 -- ---------- Profils utilisateurs (admin ou non) ----------
 -- Une ligne est créée automatiquement pour chaque nouveau compte
 -- (voir le trigger plus bas). Par défaut is_admin = false : c'est
@@ -167,6 +184,7 @@ alter table public.compositions enable row level security;
 alter table public.matches enable row level security;
 alter table public.match_maps enable row level security;
 alter table public.profiles enable row level security;
+alter table public.player_availability enable row level security;
 
 -- Lecture publique (y compris sans être connecté)
 drop policy if exists "Lecture publique maps" on public.maps;
@@ -253,6 +271,27 @@ create policy "Modification admin match_maps" on public.match_maps for update
 create policy "Suppression admin match_maps" on public.match_maps for delete
   using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
+-- ---------- Disponibilités des joueurs ----------
+-- Exception volontaire au principe ci-dessus : ici, l'ÉCRITURE est
+-- ouverte à tout le monde (pas seulement la lecture), pas seulement
+-- aux comptes admin. L'intérêt de cette table est que chaque joueur
+-- coche directement ses propres créneaux sans avoir de compte ni
+-- validation admin, exactement comme le reste du site fonctionne sans
+-- comptes individuels. Revers de la médaille : quiconque a le lien du
+-- site peut aussi modifier la disponibilité d'un autre joueur (pas
+-- seulement la sienne) puisqu'il n'y a rien qui identifie qui coche
+-- quoi. Si ça devient un problème, il faudra réintroduire un contrôle
+-- (comptes par joueur, par exemple).
+
+drop policy if exists "Lecture publique player_availability" on public.player_availability;
+create policy "Lecture publique player_availability" on public.player_availability for select using (true);
+
+drop policy if exists "Ecriture libre player_availability" on public.player_availability;
+create policy "Ecriture libre player_availability" on public.player_availability for insert with check (true);
+
+drop policy if exists "Suppression libre player_availability" on public.player_availability;
+create policy "Suppression libre player_availability" on public.player_availability for delete using (true);
+
 -- ---------- Réglages d'équipe (webhook Discord) ----------
 -- Table à une seule ligne (singleton, via la contrainte sur `id`).
 -- Lecture ET écriture réservées aux admins : contrairement aux autres
@@ -286,6 +325,7 @@ alter publication supabase_realtime add table public.compositions;
 alter publication supabase_realtime add table public.players;
 alter publication supabase_realtime add table public.matches;
 alter publication supabase_realtime add table public.match_maps;
+alter publication supabase_realtime add table public.player_availability;
 
 -- ============================================================
 -- Dernière étape manuelle (à faire une seule fois) :
