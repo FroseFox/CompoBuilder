@@ -35,6 +35,36 @@ create table if not exists public.players (
   primary_role text,
   secondary_role text,
   color text not null default '#ff4655',
+  -- Compte connecté à cette fiche (connexion Discord — voir la section
+  -- Comptes du README), pour que ce joueur (et lui seul, ou un admin)
+  -- puisse cocher ses propres disponibilités. NULL pour une fiche créée
+  -- manuellement par un admin et jamais reliée à un compte.
+  user_id uuid unique references auth.users(id) on delete set null,
+  -- Identifiant Discord stable (raw_user_meta_data->>'provider_id' ou
+  -- 'sub'), distinct de user_id : user_id change si le compte Supabase
+  -- est supprimé puis recréé (la personne se reconnecte), discord_id
+  -- non. C'est lui qui sert de clé pour la liste noire — voir
+  -- banned_discord_ids et public.ban_and_remove_player() plus bas — et
+  -- pour relier une reconnexion à la fiche existante plutôt que d'en
+  -- créer une seconde. NULL pour une fiche créée manuellement.
+  discord_id text unique,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists players_user_id_idx on public.players (user_id);
+create index if not exists players_discord_id_idx on public.players (discord_id);
+
+-- ---------- Liste noire Discord (retrait d'effectif) ----------
+-- Supprimer un compte Supabase ne révoque PAS l'autorisation OAuth
+-- Discord sous-jacente : la personne peut se reconnecter instantanément
+-- et se voir recréer un compte. Cette table est donc la vraie mémoire de
+-- "cette personne ne doit plus réapparaître dans l'effectif" — consultée
+-- par handle_new_user() ci-dessous avant de créer une fiche automatique,
+-- et alimentée par public.ban_and_remove_player().
+create table if not exists public.banned_discord_ids (
+  discord_id text primary key,
+  banned_by uuid references auth.users(id) on delete set null,
+  reason text,
   created_at timestamptz not null default now()
 );
 
@@ -122,21 +152,24 @@ create index if not exists match_maps_map_uuid_idx on public.match_maps (map_uui
 create index if not exists match_maps_composition_id_idx on public.match_maps (composition_id);
 
 -- ---------- Disponibilités des joueurs ----------
--- Grille hebdomadaire (jour × période) : chaque ligne = un joueur
--- disponible sur ce créneau. Voir la section Sécurité plus bas pour la
--- policy d'écriture, volontairement plus ouverte que le reste du schéma.
+-- Calendrier réel (une date précise, pas un jour de semaine récurrent) :
+-- chaque ligne = un joueur disponible ce jour-là, sur cette période. Le
+-- front-end croise ces dates avec celles de `matches` pour signaler les
+-- jours où un match est prévu directement sur la grille. Voir la section
+-- Sécurité plus bas : seul le compte associé à ce joueur (ou un admin)
+-- peut écrire sur sa propre ligne — voir public.claim_player().
 
 create table if not exists public.player_availability (
   id uuid primary key default gen_random_uuid(),
   player_id uuid not null references public.players(id) on delete cascade,
-  -- 0 = lundi ... 6 = dimanche
-  day_of_week smallint not null check (day_of_week between 0 and 6),
+  date date not null,
   period text not null check (period in ('morning', 'afternoon', 'evening')),
   created_at timestamptz not null default now(),
-  unique (player_id, day_of_week, period)
+  unique (player_id, date, period)
 );
 
 create index if not exists player_availability_player_id_idx on public.player_availability (player_id);
+create index if not exists player_availability_date_idx on public.player_availability (date);
 
 -- ---------- Profils utilisateurs (admin ou non) ----------
 -- Une ligne est créée automatiquement pour chaque nouveau compte
@@ -153,11 +186,47 @@ create table if not exists public.profiles (
 -- et EXECUTE révoqué pour public/anon/authenticated : cette fonction ne
 -- doit être appelée que par le trigger interne ci-dessous, jamais
 -- directement via l'API REST (/rest/v1/rpc/handle_new_user).
+--
+-- Pour une connexion Discord (seul provider actif — voir la section
+-- Comptes du README), crée aussi automatiquement la fiche joueur : c'est
+-- la connexion Discord elle-même qui constitue l'effectif, il n'y a rien
+-- à "associer" manuellement. Une personne bannie (banned_discord_ids)
+-- garde un profil (sans droit) mais n'obtient jamais de fiche joueur.
 create or replace function public.handle_new_user()
 returns trigger as $$
+declare
+  v_discord_id text;
+  v_pseudo text;
+  v_existing_player_id uuid;
 begin
   insert into public.profiles (id, is_admin) values (new.id, false)
   on conflict (id) do nothing;
+
+  v_discord_id := coalesce(new.raw_user_meta_data ->> 'provider_id', new.raw_user_meta_data ->> 'sub');
+
+  if v_discord_id is not null then
+    if exists (select 1 from public.banned_discord_ids where discord_id = v_discord_id) then
+      return new;
+    end if;
+
+    -- Une fiche existe déjà pour ce discord_id (compte Supabase supprimé
+    -- sans bannir, la personne se reconnecte) : on la relie au nouveau
+    -- compte plutôt que d'en créer une seconde.
+    select id into v_existing_player_id from public.players where discord_id = v_discord_id;
+
+    if v_existing_player_id is not null then
+      update public.players set user_id = new.id where id = v_existing_player_id;
+    else
+      v_pseudo := coalesce(
+        new.raw_user_meta_data -> 'custom_claims' ->> 'global_name',
+        new.raw_user_meta_data ->> 'full_name',
+        new.raw_user_meta_data ->> 'name',
+        'Joueur'
+      );
+      insert into public.players (pseudo, discord_id, user_id) values (v_pseudo, v_discord_id, new.id);
+    end if;
+  end if;
+
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;
@@ -168,6 +237,76 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Associe le compte actuellement connecté à une fiche joueur existante
+-- ("je suis Machin") sans donner à cette personne le droit de modifier
+-- des lignes de `players` en général : SECURITY DEFINER contourne les
+-- policies RLS (comme handle_new_user ci-dessus), mais la fonction fait
+-- elle-même toute la vérification — n'accepte que les fiches pas encore
+-- associées, et ne peut jamais associer quelqu'un d'autre que l'appelant.
+-- Appelée depuis le site via supabase.rpc('claim_player', ...).
+create or replace function public.claim_player(target_player_id uuid)
+returns public.players
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  updated_row public.players;
+begin
+  if auth.uid() is null then
+    raise exception 'Connexion requise.';
+  end if;
+
+  update public.players
+  set user_id = auth.uid()
+  where id = target_player_id and user_id is null
+  returning * into updated_row;
+
+  if updated_row.id is null then
+    raise exception 'Cette fiche joueur est introuvable ou déjà associée à un compte.';
+  end if;
+
+  return updated_row;
+end;
+$$;
+
+revoke all on function public.claim_player(uuid) from public;
+grant execute on function public.claim_player(uuid) to authenticated;
+
+-- Retire un joueur de l'effectif ET empêche son compte Discord d'y
+-- réapparaître automatiquement à la prochaine connexion (voir le
+-- commentaire sur banned_discord_ids : supprimer seul ne suffit pas).
+-- Réservé aux admins — vérifié dans la fonction elle-même puisque
+-- SECURITY DEFINER contourne les policies RLS. Appelée depuis le site
+-- via supabase.rpc('ban_and_remove_player', ...).
+create or replace function public.ban_and_remove_player(target_player_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_discord_id text;
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and is_admin = true) then
+    raise exception 'Réservé aux administrateurs.';
+  end if;
+
+  select discord_id into v_discord_id from public.players where id = target_player_id;
+
+  if v_discord_id is not null then
+    insert into public.banned_discord_ids (discord_id, banned_by)
+    values (v_discord_id, auth.uid())
+    on conflict (discord_id) do nothing;
+  end if;
+
+  delete from public.players where id = target_player_id;
+end;
+$$;
+
+revoke all on function public.ban_and_remove_player(uuid) from public;
+grant execute on function public.ban_and_remove_player(uuid) to authenticated;
 
 -- ============================================================
 -- Sécurité (Row Level Security)
@@ -185,6 +324,7 @@ alter table public.matches enable row level security;
 alter table public.match_maps enable row level security;
 alter table public.profiles enable row level security;
 alter table public.player_availability enable row level security;
+alter table public.banned_discord_ids enable row level security;
 
 -- Lecture publique (y compris sans être connecté)
 drop policy if exists "Lecture publique maps" on public.maps;
@@ -272,25 +412,52 @@ create policy "Suppression admin match_maps" on public.match_maps for delete
   using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 -- ---------- Disponibilités des joueurs ----------
--- Exception volontaire au principe ci-dessus : ici, l'ÉCRITURE est
--- ouverte à tout le monde (pas seulement la lecture), pas seulement
--- aux comptes admin. L'intérêt de cette table est que chaque joueur
--- coche directement ses propres créneaux sans avoir de compte ni
--- validation admin, exactement comme le reste du site fonctionne sans
--- comptes individuels. Revers de la médaille : quiconque a le lien du
--- site peut aussi modifier la disponibilité d'un autre joueur (pas
--- seulement la sienne) puisqu'il n'y a rien qui identifie qui coche
--- quoi. Si ça devient un problème, il faudra réintroduire un contrôle
--- (comptes par joueur, par exemple).
+-- Lecture publique comme le reste du site, mais l'écriture n'est ni
+-- ouverte à tout le monde ni réservée aux admins : chaque compte ne peut
+-- écrire QUE sur la ligne du joueur auquel il est associé (players.user_id
+-- = son propre compte, via public.claim_player()), plus les admins qui
+-- gardent la main pour dépanner un joueur sans compte.
 
 drop policy if exists "Lecture publique player_availability" on public.player_availability;
 create policy "Lecture publique player_availability" on public.player_availability for select using (true);
 
+-- Écriture ouverte à tous, sans compte : ancienne policy (migration_012),
+-- remplacée ci-dessous par migration_013. Supprimée ici si encore présente.
 drop policy if exists "Ecriture libre player_availability" on public.player_availability;
-create policy "Ecriture libre player_availability" on public.player_availability for insert with check (true);
-
 drop policy if exists "Suppression libre player_availability" on public.player_availability;
-create policy "Suppression libre player_availability" on public.player_availability for delete using (true);
+
+drop policy if exists "Ecriture propre ou admin player_availability" on public.player_availability;
+create policy "Ecriture propre ou admin player_availability" on public.player_availability for insert
+  with check (
+    exists (select 1 from public.players where players.id = player_availability.player_id and players.user_id = (select auth.uid()))
+    or exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true)
+  );
+
+drop policy if exists "Suppression propre ou admin player_availability" on public.player_availability;
+create policy "Suppression propre ou admin player_availability" on public.player_availability for delete
+  using (
+    exists (select 1 from public.players where players.id = player_availability.player_id and players.user_id = (select auth.uid()))
+    or exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true)
+  );
+
+-- ---------- Liste noire Discord ----------
+-- Lecture ET écriture réservées aux admins, comme team_settings plus
+-- bas : personne d'autre n'a besoin de savoir qui est banni, et seul un
+-- admin doit pouvoir modifier cette liste (l'écriture normale passe par
+-- public.ban_and_remove_player(), mais une policy insert est gardée pour
+-- un bannissement direct, sans fiche joueur à retirer en même temps).
+
+drop policy if exists "Lecture admin banned_discord_ids" on public.banned_discord_ids;
+create policy "Lecture admin banned_discord_ids" on public.banned_discord_ids for select
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+
+drop policy if exists "Ecriture admin banned_discord_ids" on public.banned_discord_ids;
+create policy "Ecriture admin banned_discord_ids" on public.banned_discord_ids for insert
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+
+drop policy if exists "Suppression admin banned_discord_ids" on public.banned_discord_ids;
+create policy "Suppression admin banned_discord_ids" on public.banned_discord_ids for delete
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
 
 -- ---------- Réglages d'équipe (webhook Discord) ----------
 -- Table à une seule ligne (singleton, via la contrainte sur `id`).
@@ -328,12 +495,21 @@ alter publication supabase_realtime add table public.match_maps;
 alter publication supabase_realtime add table public.player_availability;
 
 -- ============================================================
--- Dernière étape manuelle (à faire une seule fois) :
+-- Dernières étapes manuelles (à faire une seule fois) :
 --
--- 1. Créez votre compte admin dans Authentication > Users > Add user
---    (email + mot de passe), dans le dashboard Supabase.
--- 2. Copiez son UID (colonne "UID" dans la liste des utilisateurs).
--- 3. Exécutez la ligne ci-dessous en remplaçant VOTRE_UID :
+-- 1. Créez une application OAuth2 sur le Discord Developer Portal
+--    (discord.com/developers/applications), avec comme redirect URI
+--    l'URL de callback Supabase (Authentication > Providers > Discord
+--    dans le dashboard Supabase vous la donne). Collez le Client ID et
+--    le Client Secret dans ce même écran, puis activez le provider.
+-- 2. Désactivez le provider Email (Authentication > Providers > Email)
+--    si vous ne voulez que la connexion Discord — voir le README.
+-- 3. Connectez-vous une première fois sur le site avec VOTRE compte
+--    Discord : cela crée automatiquement votre profil ET votre fiche
+--    joueur (voir handle_new_user() plus haut).
+-- 4. Copiez votre UID (Authentication > Users, colonne "UID", dans le
+--    dashboard Supabase), puis exécutez la ligne ci-dessous pour vous
+--    passer administrateur :
 --
 -- update public.profiles set is_admin = true where id = 'VOTRE_UID';
 -- ============================================================

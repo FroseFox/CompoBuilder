@@ -89,12 +89,36 @@ correction automatique n'est appliquée ; à lancer avant de commit.
 
 ## Comptes et droits
 
-- **Administrateur** : un compte email/mot de passe créé dans Supabase
-  (Authentication > Users), marqué `is_admin = true` dans la table
-  `profiles`. Peut tout créer/modifier/supprimer. Se connecte via le bouton
-  **Connexion admin** dans la barre du haut.
-- **Membres de l'équipe** : aucun compte nécessaire. Ils ouvrent le site et
-  consultent les compositions, en temps réel, en lecture seule.
+Une seule façon de se connecter : **Discord** (OAuth, via Supabase Auth).
+Il n'y a plus de formulaire email/mot de passe.
+
+- **Se connecter avec Discord crée l'effectif lui-même** : à la première
+  connexion, une fiche joueur est automatiquement créée (pseudo repris de
+  Discord) et reliée à ce compte — voir le trigger `handle_new_user()`
+  dans `supabase/schema.sql`. Rien à "associer" à la main dans le cas
+  normal ; ce joueur ne peut cocher que ses propres disponibilités.
+- **Administrateur** : n'importe quel compte Discord, marqué
+  `is_admin = true` dans la table `profiles` (toujours réglé à la main
+  dans le dashboard Supabase — voir l'étape 4 en bas de `schema.sql`).
+  Peut tout créer/modifier/supprimer, et cocher les disponibilités de
+  n'importe quel joueur.
+- **Retirer quelqu'un de l'effectif** (bouton "Supprimer" sur la page
+  Équipe, réservé aux admins) : pour une fiche reliée à un compte Discord,
+  ce bouton bannit aussi son `discord_id` (RPC `ban_and_remove_player()`).
+  C'est nécessaire car **supprimer un compte Supabase ne révoque pas
+  l'autorisation OAuth Discord** — sans ce bannissement, la personne
+  pourrait se reconnecter et se voir recréer une fiche automatiquement.
+  Pour une fiche créée à la main (jamais reliée à un compte, affichée
+  "Sans compte Discord"), un simple retrait suffit.
+- **Fiche "orpheline" après migration** : une fiche créée avant l'ajout de
+  la connexion Discord n'a pas de `discord_id`. Si son joueur se
+  connecte, une fiche séparée sera créée pour lui (rien ne permet de
+  deviner que c'est la même personne) — supprimez alors le doublon, ou
+  collez son `discord_id` à la main sur l'ancienne fiche. Le bouton
+  "Associer" resté sur la page Disponibilités (fonction `claim_player()`)
+  couvre ce cas de repli.
+- **Visiteurs sans compte** : consultent tout le site (compositions,
+  effectif, disponibilités…) en temps réel, en lecture seule.
 
 ## Architecture
 
@@ -102,7 +126,7 @@ correction automatique n'est appliquée ; à lancer avant de commit.
 src/
   components/
     Navbar/                  # nav, recherche globale, thème, connexion admin
-    AuthPanel/                # modal de connexion administrateur
+    AuthPanel/                # bouton "Connexion Discord" / statut connecté
     MapCard/                 # carte de map (accueil) : statut, joueurs, date
     AgentSlot/                # un emplacement de composition (lecture ou édition)
     AgentSelectionModal/      # sélection d'agent : recherche, filtre rôle, tri
@@ -150,10 +174,11 @@ supabase/
 |---|---|
 | `maps` | Référence des maps (uuid, nom) — synchronisée automatiquement depuis valorant-api.com |
 | `agents` | Référence des agents (uuid, nom, rôle) — synchronisée automatiquement |
-| `players` | Effectif de l'équipe (pseudo, rôle principal/secondaire, couleur) |
+| `players` | Effectif de l'équipe (pseudo, rôle principal/secondaire, couleur, compte et `discord_id` reliés) |
 | `compositions` | Une composition = map associée, nom, 5 emplacements (`slots` : agent + joueur assigné), statut, notes, date de dernière modification |
-| `player_availability` | Créneaux (jour × période) où un joueur s'est déclaré disponible — voir la section Sécurité ci-dessous, écriture ouverte à tous par exception |
+| `player_availability` | Créneaux (date réelle × période) où un joueur s'est déclaré disponible — un joueur ne peut cocher que sa propre ligne, via le compte associé à sa fiche (`players.user_id`, voir Sécurité) |
 | `profiles` | Un compte utilisateur = administrateur ou lecture seule |
+| `banned_discord_ids` | Identifiants Discord bannis (retirés de l'effectif) — empêche une fiche joueur de se recréer toute seule à la reconnexion |
 
 Chaque map peut avoir **plusieurs compositions** (principale, anti-rush,
 eco, double initiateur…). Une seule peut être marquée comme **principale**
@@ -171,17 +196,31 @@ Security** définies dans `supabase/schema.sql` : lecture ouverte à tous,
 GUIDE_SUPABASE.md, section "Pourquoi c'est sans danger", pour le détail.
 
 **Exception : `player_availability`.** Contrairement à toutes les autres
-tables, l'écriture (ajout/suppression d'un créneau) y est ouverte à tout le
-monde, pas seulement aux comptes admin — exactement comme `team_settings`
-est l'exception inverse (lecture *et* écriture réservées aux admins, pour
-protéger le webhook Discord). L'objectif de la page Disponibilités est que
-chaque joueur coche directement ses propres créneaux sans avoir de compte
-ni de validation admin, comme le reste du site fonctionne déjà sans
-comptes individuels par joueur. Revers assumé : quiconque a le lien du
-site peut aussi modifier la disponibilité d'un *autre* joueur (rien
-n'identifie qui coche quoi), un peu comme un tableur partagé en écriture
-libre. Si ça devient un problème dans la pratique, il faudra réintroduire
-un contrôle (un compte par joueur, par exemple).
+tables, l'écriture (ajout/suppression d'un créneau) n'est réservée ni à
+tout le monde ni aux seuls comptes admin — chaque compte joueur ne peut
+écrire que sur la ligne du joueur auquel il est associé (`players.user_id`),
+plus les admins qui gardent la main pour dépanner un joueur qui n'a pas
+encore de compte. `team_settings` reste l'exception inverse (lecture *et*
+écriture réservées aux admins, pour protéger le webhook Discord).
+
+**Comment `players.user_id` se remplit.** Deux fonctions Postgres
+`SECURITY DEFINER` (contournent les policies RLS, mais font elles-mêmes
+toute la vérification) :
+- `handle_new_user()` : trigger sur chaque nouvelle connexion. Pour une
+  connexion Discord, crée automatiquement la fiche joueur (ou la relie si
+  une fiche portant déjà ce `discord_id` existe), sauf si ce `discord_id`
+  est dans `banned_discord_ids`.
+- `claim_player()` : cas de repli pour une fiche créée avant l'ajout de la
+  connexion Discord (donc sans `discord_id`) — vérifie qu'on ne s'associe
+  qu'à une fiche pas encore prise, jamais à la place de quelqu'un d'autre.
+
+**Pourquoi `banned_discord_ids` existe.** Supprimer un compte Supabase ne
+révoque pas l'autorisation OAuth Discord sous-jacente : la personne peut
+se reconnecter instantanément et obtenir un nouveau compte, qui recréerait
+sa fiche joueur toute seule. `public.ban_and_remove_player()` (appelée par
+le bouton "Supprimer" sur la page Équipe pour une fiche reliée à Discord)
+retire la fiche ET enregistre son `discord_id` dans cette liste, que
+`handle_new_user()` consulte avant de recréer quoi que ce soit.
 
 Compléments :
 - **Content-Security-Policy** : injectée automatiquement dans le HTML du
@@ -241,12 +280,16 @@ Compléments :
 - Statistiques par joueur, déduites des compositions utilisées en match
 
 **Disponibilités**
-- Grille hebdomadaire (7 jours × Matin/Après-midi/Soir) : chaque joueur se
-  sélectionne dans la liste puis coche ses créneaux libres, sans compte ni
-  validation admin (voir la section Sécurité pour le compromis assumé)
+- Calendrier réel (semaine navigable, précédente/suivante), pas des jours
+  de semaine récurrents : chaque case correspond à une vraie date
+  (Matin/Après-midi/Soir), et les jours où un match est déjà programmé
+  (Match Center) sont signalés directement sur la grille
+- Connexion Discord : la fiche joueur se crée (ou se relie) automatiquement
+  à la première connexion, sans étape manuelle ; chacun ne peut cocher que
+  ses propres créneaux, un admin peut cocher pour n'importe qui
 - Chaque case affiche le nombre et les avatars des joueurs disponibles à ce
-  créneau ; le créneau où le plus de monde est disponible est mis en
-  évidence automatiquement
+  créneau ; le créneau où le plus de monde est disponible cette semaine est
+  mis en évidence automatiquement
 - Synchronisé en temps réel comme le reste du site (Supabase Realtime)
 
 **Recherche globale (⌘K)**

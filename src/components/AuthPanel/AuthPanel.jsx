@@ -1,19 +1,16 @@
-import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
-import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import './AuthPanel.css'
 
+/**
+ * Seule porte d'entrée : connexion Discord (voir AuthContext.signInWithDiscord).
+ * Pas de modale/formulaire ici — un clic déclenche directement la
+ * redirection OAuth, la fiche joueur se crée automatiquement côté base
+ * (handle_new_user) sans étape supplémentaire à faire sur le site.
+ */
 export default function AuthPanel() {
-  const { user, isAdmin, signIn, signOut } = useAuth()
+  const { user, isAdmin, signInWithDiscord, signOut } = useAuth()
   const { pushToast } = useToast()
-  const [open, setOpen] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  useEscapeToClose(open, () => setOpen(false))
 
   if (user) {
     return (
@@ -34,85 +31,24 @@ export default function AuthPanel() {
     )
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    const error = await signIn(email, password)
-    setSubmitting(false)
-    if (error) {
-      pushToast('Connexion refusée : email ou mot de passe incorrect.', 'error')
-      return
-    }
-    pushToast('Connexion réussie.', 'success')
-    setOpen(false)
-    setPassword('')
+  const handleClick = async () => {
+    const error = await signInWithDiscord()
+    if (error) pushToast(`Connexion Discord impossible : ${error.message}`, 'error')
   }
 
   return (
-    <>
-      <button className="btn btn-ghost auth-panel" onClick={() => setOpen(true)}>
-        Connexion admin
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="confirm-scrim"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16 }}
-            onClick={() => setOpen(false)}
-          >
-            <motion.form
-              className="auth-panel__form glass-panel"
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 32 } }}
-              exit={{ opacity: 0, y: 10, scale: 0.98, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } }}
-              onClick={(e) => e.stopPropagation()}
-              onSubmit={handleSubmit}
-            >
-              <h3>Connexion administrateur</h3>
-              <p className="auth-panel__hint">
-                Les autres membres de l'équipe n'ont pas besoin de compte : ils
-                consultent les compositions sans se connecter.
-              </p>
-
-              <label className="player-form__field">
-                <span>Email</span>
-                <input
-                  type="email"
-                  required
-                  autoFocus
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@monequipe.com"
-                />
-              </label>
-
-              <label className="player-form__field">
-                <span>Mot de passe</span>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </label>
-
-              <div className="confirm-dialog__actions">
-                <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
-                  Annuler
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Connexion…' : 'Se connecter'}
-                </button>
-              </div>
-            </motion.form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+    <button className="btn btn-ghost auth-panel auth-panel__discord" onClick={handleClick}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M8 5.5c2.6-.9 5.4-.9 8 0M7 17c-2.2-.7-3.6-1.7-4.5-2.9C2 11 2.6 7.6 5 5.5c1-.6 2-1 3-1.2l.7 1.4M17 17c2.2-.7 3.6-1.7 4.5-2.9 .5-3.1-.1-6.5-2.5-8.6-1-.6-2-1-3-1.2l-.7 1.4"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+        <circle cx="9" cy="13" r="1.4" fill="currentColor" />
+        <circle cx="15" cy="13" r="1.4" fill="currentColor" />
+      </svg>
+      Connexion Discord
+    </button>
   )
 }

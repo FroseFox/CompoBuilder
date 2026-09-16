@@ -27,7 +27,7 @@ const ROLE_ACCENT = {
 
 export default function Team() {
   const { agents } = useData()
-  const { players, addPlayer, updatePlayer, deletePlayer } = usePlayers()
+  const { players, addPlayer, updatePlayer, deletePlayer, banAndRemovePlayer } = usePlayers()
   const { unassignPlayerEverywhere } = useCompositions()
   const { isAdmin } = useAuth()
   const { pushToast } = useToast()
@@ -108,7 +108,16 @@ export default function Team() {
     const player = players[confirmDeleteId]
     setConfirmDeleteId(null)
     await unassignPlayerEverywhere(confirmDeleteId)
-    await deletePlayer(confirmDeleteId)
+    // Un joueur relié à un compte Discord doit être banni en plus d'être
+    // supprimé : supprimer sa fiche seule ne l'empêche pas de réapparaître
+    // tout seul à sa prochaine connexion (voir ban_and_remove_player côté
+    // base). Une fiche créée à la main (pas de discordId) n'a pas ce
+    // problème, un simple delete suffit.
+    if (player?.discordId) {
+      await banAndRemovePlayer(confirmDeleteId)
+    } else {
+      await deletePlayer(confirmDeleteId)
+    }
     pushToast(`${player?.pseudo || 'Joueur'} retiré de l'effectif.`, 'success')
   }
 
@@ -193,6 +202,11 @@ export default function Team() {
                       <span className="player-card__no-role">Aucun rôle défini</span>
                     )}
                   </div>
+                  {isAdmin && !player.discordId && (
+                    <span className="player-card__no-role" title="Fiche créée à la main, pas encore reliée à un compte Discord">
+                      Sans compte Discord
+                    </span>
+                  )}
                 </div>
                 {isAdmin && (
                   <div className="player-card__actions">
@@ -312,7 +326,11 @@ export default function Team() {
       <ConfirmDialog
         open={Boolean(confirmDeleteId)}
         title="Retirer ce joueur ?"
-        description="Il sera retiré de l'effectif et désassigné de toutes les compositions où il apparaissait."
+        description={
+          players[confirmDeleteId]?.discordId
+            ? "Il sera retiré de l'effectif, désassigné de toutes les compositions, et son compte Discord sera banni pour qu'il ne réapparaisse pas tout seul à sa prochaine connexion."
+            : "Il sera retiré de l'effectif et désassigné de toutes les compositions où il apparaissait."
+        }
         confirmLabel="Retirer"
         onConfirm={handleDelete}
         onCancel={() => setConfirmDeleteId(null)}

@@ -47,15 +47,28 @@ export function AuthProvider({ children }) {
     }
   }, [session])
 
-  const signIn = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+  // Seule méthode de connexion du site : se connecter avec Discord crée
+  // (ou relie) automatiquement la fiche joueur côté base — voir le
+  // trigger handle_new_user() dans supabase/schema.sql. is_admin reste
+  // toujours réglé à la main dans Supabase (table profiles), inchangé.
+  // redirectTo pointe vers la racine du site (sans route HashRouter) :
+  // Supabase y ajoute son ?code=... (flux PKCE, voir supabaseClient.js),
+  // et onAuthStateChange ci-dessus prend le relais une fois la session
+  // posée, quelle que soit la route sur laquelle l'utilisateur atterrit.
+  const signInWithDiscord = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: { redirectTo: window.location.origin + window.location.pathname },
+    })
     return error
   }
 
   const signOut = () => supabase.auth.signOut()
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user || null, isAdmin, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ session, user: session?.user || null, isAdmin, loading, signInWithDiscord, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   )

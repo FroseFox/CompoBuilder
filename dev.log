@@ -1,0 +1,20 @@
+
+> valorant-comp-builder@1.0.0 dev
+> vite --port 5174 --host
+
+
+  VITE v5.4.21  ready in 234 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: http://192.0.2.2:5174/
+7:08:04 PM [vite] page reload src/utils/exportComposition.js
+7:08:09 PM [vite] page reload src/utils/matchCard.js
+7:08:14 PM [vite] page reload src/utils/exportComposition.js
+7:08:14 PM [vite] page reload src/utils/matchCard.js
+7:15:43 PM [vite] page reload src/utils/exportComposition.js
+7:15:57 PM [vite] page reload src/utils/exportComposition.js
+7:16:12 PM [vite] page reload src/utils/exportComposition.js
+7:16:31 PM [vite] page reload src/utils/exportComposition.js
+7:16:35 PM [vite] page reload src/utils/matchCard.js
+7:16:44 PM [vite] page reload src/utils/matchCard.js
+7:16:59 PM [vite] page reload src/utils/matchCard.js

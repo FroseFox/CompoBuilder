@@ -12,7 +12,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// flowType: 'pkce' — la connexion Discord (OAuth) renvoie normalement le
+// jeton dans le FRAGMENT d'URL (#access_token=...), qui rentrerait en
+// collision avec le routing du site (HashRouter, lui-même basé sur le
+// fragment : #/team, #/dispos...). Le flux PKCE renvoie plutôt un code
+// dans la QUERY STRING (?code=...), qui ne touche pas au fragment : les
+// deux mécanismes cohabitent sans se marcher dessus.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { flowType: 'pkce' },
+})
 
 /** true si les variables d'environnement Supabase sont présentes. */
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)

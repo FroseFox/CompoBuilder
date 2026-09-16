@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase } from '../services/supabaseClient'
 import {
+  banAndRemovePlayerRow,
+  claimPlayerRow,
   deletePlayerRow,
   fetchPlayers,
   insertPlayer,
@@ -117,8 +119,48 @@ export function PlayersProvider({ children }) {
     [removePlayerFromState, handleError]
   )
 
+  /**
+   * Retire un joueur ET bannit son discord_id (voir banAndRemovePlayerRow) :
+   * à utiliser à la place de deletePlayer pour un joueur connecté via
+   * Discord, sous peine de le voir réapparaître automatiquement à sa
+   * prochaine connexion.
+   */
+  const banAndRemovePlayer = useCallback(
+    async (id) => {
+      try {
+        await banAndRemovePlayerRow(id)
+        removePlayerFromState(id)
+      } catch (err) {
+        handleError(err, 'Impossible de retirer ce joueur.')
+      }
+    },
+    [removePlayerFromState, handleError]
+  )
+
+  /** Associe le compte actuellement connecté à cette fiche joueur (page Disponibilités). */
+  const claimPlayer = useCallback(
+    async (id) => {
+      try {
+        const player = await claimPlayerRow(id)
+        mergePlayer(player)
+        pushToast(`Compte associé à ${player.pseudo}.`, 'success')
+        return true
+      } catch (err) {
+        if (err?.code === '23505') {
+          pushToast('Ce compte est déjà associé à un autre joueur.', 'error')
+        } else {
+          handleError(err, "Impossible d'associer ce compte à ce joueur.")
+        }
+        return false
+      }
+    },
+    [mergePlayer, handleError, pushToast]
+  )
+
   return (
-    <PlayersContext.Provider value={{ players, status, addPlayer, updatePlayer, deletePlayer }}>
+    <PlayersContext.Provider
+      value={{ players, status, addPlayer, updatePlayer, deletePlayer, banAndRemovePlayer, claimPlayer }}
+    >
       {children}
     </PlayersContext.Provider>
   )

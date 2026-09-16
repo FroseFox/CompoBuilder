@@ -103,44 +103,60 @@ npm run dev
 
 ---
 
-## Étape 5 — Créer votre compte administrateur
+## Étape 5 — Activer la connexion Discord
 
-1. Dans Supabase, allez dans **Authentication** (menu de gauche) > **Users**.
-2. Cliquez sur **Add user** > **Create new user**.
-3. Renseignez un email (peut être fictif, ex. `admin@monequipe.gg`) et un
-   mot de passe. Décochez "Auto Confirm User" s'il est proposé, ou laissez
-   coché pour ne pas avoir à confirmer par email — le plus simple pour
-   débuter est de **laisser "Auto Confirm User" coché**.
-4. Cliquez sur **Create user**.
-5. Cliquez sur l'utilisateur que vous venez de créer pour voir sa fiche, et
-   copiez son **UID** (un identifiant du type `3f2a1b4c-....`).
+Le site n'a qu'une seule façon de se connecter : Discord (pas d'email/mot
+de passe). Il faut donc une application OAuth2 Discord, branchée sur
+Supabase, avant de pouvoir se connecter la première fois.
+
+1. Allez sur [discord.com/developers/applications](https://discord.com/developers/applications),
+   **New Application**, donnez-lui un nom (ex. le nom de votre équipe).
+2. Dans le menu de gauche de l'application, ouvrez **OAuth2** : notez le
+   **Client ID**, et cliquez sur **Reset Secret** pour obtenir le
+   **Client Secret** (copiez-le tout de suite, il ne sera plus réaffiché).
+3. Dans Supabase, allez dans **Authentication** (menu de gauche) >
+   **Providers**, cherchez **Discord** et activez-le. Cet écran vous donne
+   une **Callback URL** (`https://VOTRE_PROJET.supabase.co/auth/v1/callback`)
+   à copier.
+4. Retournez sur Discord, dans **OAuth2** > **Redirects**, collez cette
+   Callback URL et enregistrez.
+5. Toujours dans Supabase (écran du provider Discord), collez le Client ID
+   et le Client Secret notés à l'étape 2, puis **Save**.
+6. (Recommandé) Dans **Authentication** > **Providers** > **Email**,
+   désactivez ce provider — le site ne propose de toute façon plus le
+   formulaire email/mot de passe, autant fermer cette porte côté Supabase
+   aussi.
 
 ---
 
-## Étape 6 — Activer les droits administrateur
+## Étape 6 — Créer votre compte administrateur
 
-1. Retournez dans **SQL Editor** > **New query**.
-2. Collez cette ligne, en remplaçant `VOTRE_UID` par l'UID copié à
-   l'étape précédente :
+1. Retournez sur le site (`npm run dev` si ce n'est pas déjà lancé), et
+   cliquez sur **Connexion Discord** en haut à droite. Autorisez
+   l'application sur l'écran Discord qui s'ouvre.
+2. Cette première connexion crée automatiquement votre profil et votre
+   fiche joueur — rien d'autre à remplir.
+3. Dans Supabase, **Authentication** > **Users** : repérez la ligne qui
+   vient d'apparaître (votre pseudo/email Discord) et copiez son **UID**
+   (un identifiant du type `3f2a1b4c-....`).
+4. Retournez dans **SQL Editor** > **New query**, collez cette ligne en
+   remplaçant `VOTRE_UID` par l'UID copié à l'étape précédente, puis
+   **Run** :
 
 ```sql
 update public.profiles set is_admin = true where id = 'VOTRE_UID';
 ```
 
-3. Cliquez sur **Run**.
-
 C'est fait : ce compte peut désormais créer et modifier des compositions.
-Tous les autres comptes (ou aucun compte du tout, pour un simple visiteur)
-resteront en lecture seule.
+Tous les autres comptes Discord (ou aucun compte du tout, pour un simple
+visiteur) resteront en lecture seule.
 
 ---
 
-## Étape 7 — Se connecter dans l'application
+## Étape 7 — Vérifier dans l'application
 
-1. Retournez sur le site (`npm run dev` si ce n'est pas déjà lancé).
-2. En haut à droite, cliquez sur **Connexion admin**.
-3. Entrez l'email et le mot de passe créés à l'étape 5.
-4. Vous devriez voir un badge **● Admin** apparaître, et tous les boutons
+1. Rechargez la page du site.
+2. Vous devriez voir un badge **● Admin** apparaître, et tous les boutons
    d'édition (ajouter un agent, créer une composition, ajouter un joueur…)
    deviennent visibles.
 
@@ -151,9 +167,11 @@ valorant-api.com) vers vos tables Supabase. Un message d'erreur "Impossible
 de créer la composition" à la toute première tentative signifie
 généralement qu'il faut juste patienter et réessayer.
 
-Les autres membres de votre équipe n'ont besoin de rien faire de spécial :
-ils ouvrent simplement le lien du site et voient déjà tout, en lecture
-seule, sans avoir de compte.
+Les autres membres de votre équipe n'ont besoin de rien faire de spécial
+pour consulter le site : ils ouvrent simplement le lien et voient déjà
+tout, en lecture seule, sans avoir de compte. Pour cocher leurs propres
+disponibilités (page Disponibilités), ils se connectent eux aussi avec
+Discord — leur fiche joueur se crée automatiquement, comme la vôtre.
 
 ---
 

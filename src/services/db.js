@@ -37,6 +37,12 @@ function rowToPlayer(row) {
     primaryRole: row.primary_role,
     secondaryRole: row.secondary_role,
     color: row.color,
+    // Compte connecté (voir public.claim_player / connexion Discord) —
+    // null pour une fiche créée manuellement, jamais reliée à un compte.
+    userId: row.user_id ?? null,
+    // Identifiant Discord stable posé par handle_new_user() à la
+    // connexion — null pour une fiche créée manuellement par un admin.
+    discordId: row.discord_id ?? null,
     createdAt: new Date(row.created_at).getTime(),
   }
 }
@@ -133,13 +139,38 @@ export async function deletePlayerRow(id) {
   if (error) throw error
 }
 
+/**
+ * Associe le compte actuellement connecté à cette fiche joueur (RPC
+ * public.claim_player — voir supabase/schema.sql pour la vérification
+ * côté base : impossible d'associer quelqu'un d'autre que soi-même, ni
+ * une fiche déjà associée).
+ */
+export async function claimPlayerRow(playerId) {
+  const { data, error } = await supabase.rpc('claim_player', { target_player_id: playerId })
+  if (error) throw error
+  return rowToPlayer(data)
+}
+
+/**
+ * Retire un joueur de l'effectif ET bannit son discord_id (RPC
+ * public.ban_and_remove_player — voir supabase/schema.sql) : contrairement
+ * à deletePlayerRow, empêche cette personne de réapparaître automatiquement
+ * à sa prochaine connexion Discord. Sans effet de bannissement pour une
+ * fiche sans discord_id (créée manuellement) — équivaut alors à un simple
+ * delete côté base.
+ */
+export async function banAndRemovePlayerRow(playerId) {
+  const { error } = await supabase.rpc('ban_and_remove_player', { target_player_id: playerId })
+  if (error) throw error
+}
+
 // ---------- Disponibilités des joueurs ----------
 
 function rowToAvailability(row) {
   return {
     id: row.id,
     playerId: row.player_id,
-    day: row.day_of_week,
+    date: row.date,
     period: row.period,
   }
 }
@@ -150,22 +181,22 @@ export async function fetchAvailability() {
   return data.map(rowToAvailability)
 }
 
-export async function addAvailabilitySlot(playerId, day, period) {
+export async function addAvailabilitySlot(playerId, date, period) {
   const { data, error } = await supabase
     .from('player_availability')
-    .insert({ player_id: playerId, day_of_week: day, period })
+    .insert({ player_id: playerId, date, period })
     .select()
     .single()
   if (error) throw error
   return rowToAvailability(data)
 }
 
-export async function removeAvailabilitySlot(playerId, day, period) {
+export async function removeAvailabilitySlot(playerId, date, period) {
   const { error } = await supabase
     .from('player_availability')
     .delete()
     .eq('player_id', playerId)
-    .eq('day_of_week', day)
+    .eq('date', date)
     .eq('period', period)
   if (error) throw error
 }

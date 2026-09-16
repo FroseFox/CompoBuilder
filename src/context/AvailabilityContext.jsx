@@ -11,10 +11,10 @@ import { useToast } from './ToastContext'
 const AvailabilityContext = createContext(null)
 
 // Rappel : contrairement aux autres tables, l'écriture sur
-// `player_availability` n'est pas réservée aux admins (voir
-// supabase/schema.sql). Le handleError ci-dessous garde quand même le
-// même filet de sécurité "row-level security" au cas où la policy
-// serait durcie plus tard.
+// `player_availability` n'est réservée ni à tout le monde ni aux seuls
+// admins : chaque compte ne peut modifier que la ligne du joueur auquel
+// il est associé (voir claimPlayer dans PlayersContext), plus les admins
+// qui gardent la main. handleError traduit un refus RLS en conséquence.
 
 export function AvailabilityProvider({ children }) {
   const { pushToast } = useToast()
@@ -81,25 +81,25 @@ export function AvailabilityProvider({ children }) {
       console.error(err)
       const message =
         err?.code === '42501' || /row-level security/i.test(err?.message || '')
-          ? "Action refusée par la base de données."
+          ? "Action refusée : tu ne peux modifier que tes propres disponibilités."
           : fallbackMessage
       pushToast(message, 'error')
     },
     [pushToast]
   )
 
-  /** Bascule un créneau (jour × période) pour un joueur donné. */
+  /** Bascule un créneau (date × période) pour un joueur donné. */
   const toggleSlot = useCallback(
-    async (playerId, day, period) => {
+    async (playerId, date, period) => {
       const existing = Object.values(slots).find(
-        (s) => s.playerId === playerId && s.day === day && s.period === period
+        (s) => s.playerId === playerId && s.date === date && s.period === period
       )
       try {
         if (existing) {
-          await removeAvailabilitySlot(playerId, day, period)
+          await removeAvailabilitySlot(playerId, date, period)
           removeSlotFromState(existing.id)
         } else {
-          const slot = await addAvailabilitySlot(playerId, day, period)
+          const slot = await addAvailabilitySlot(playerId, date, period)
           mergeSlot(slot)
         }
       } catch (err) {
