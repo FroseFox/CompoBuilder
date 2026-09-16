@@ -47,35 +47,28 @@
 
 .player-avatar__discord-badge {
   position: absolute;
-  right: -2px;
+  right: -3px;
   bottom: -2px;
   display: flex;
-  border-radius: 50%;
-  background: var(--bg-elevated);
-  padding: 1.5px;
   line-height: 0;
+  filter: drop-shadow(0 0 1.5px var(--bg-elevated)) drop-shadow(0 0 1.5px var(--bg-elevated));
 }
 
 .player-avatar__discord-badge img {
   display: block;
-  border-radius: 50%;
+  width: auto;
+  /* Pas de recadrage/arrondi : on garde la forme du logo telle quelle. */
+  object-fit: contain;
 }
 
 .player-avatar__discord-badge--sm img {
-  width: 11px;
-  height: 11px;
+  height: 8px;
 }
 
 .player-avatar__discord-badge--md img {
-  width: 13px;
-  height: 13px;
-}
-
-.player-avatar__discord-badge--lg {
-  padding: 2px;
+  height: 10px;
 }
 
 .player-avatar__discord-badge--lg img {
-  width: 17px;
-  height: 17px;
+  height: 13px;
 }
