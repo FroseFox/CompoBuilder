@@ -190,7 +190,7 @@ export default function Team() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.32, delay: Math.min(index * 0.04, 0.3), ease: [0.16, 1, 0.3, 1] }}
               >
-                <PlayerAvatar player={player} size="lg" />
+                <PlayerAvatar player={player} size="lg" showDiscordBadge />
                 <div className="player-card__info">
                   <h3>{player.pseudo}</h3>
                   <div className="player-card__roles">
