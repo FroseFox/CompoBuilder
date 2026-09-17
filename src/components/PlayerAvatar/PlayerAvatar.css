@@ -62,13 +62,13 @@
 }
 
 .player-avatar__discord-badge--sm img {
-  height: 16px;
+  height: 12px;
 }
 
 .player-avatar__discord-badge--md img {
-  height: 20px;
+  height: 15px;
 }
 
 .player-avatar__discord-badge--lg img {
-  height: 26px;
+  height: 19px;
 }
