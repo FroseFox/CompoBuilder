@@ -119,6 +119,11 @@ create table if not exists public.matches (
   notes text not null default '',
   position integer not null default 0,
   opponent_logo_url text,
+  -- Lien vers la VOD du match (Twitch, YouTube…) — un seul lien pour
+  -- toute la série, saisi à la main par un admin. Affiché dans
+  -- l'historique du Match Center quand renseigné. Voir
+  -- migration_015_match_vod.sql.
+  vod_url text,
   -- Validation de présence (✅/❌ sur le message Discord envoyé à la
   -- programmation) : comptage global, resynchronisé à la demande.
   -- Voir migration_010_discord_votes.sql.

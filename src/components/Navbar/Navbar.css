@@ -166,6 +166,105 @@
   clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 0);
 }
 
+/* ---------- Onglet "Plus" (pages secondaires regroupées) ---------- */
+.topnav__more {
+  display: flex;
+}
+
+.topnav__more-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.topnav__more-chevron {
+  transition: transform var(--dur-fast) var(--ease-out);
+  opacity: 0.7;
+}
+
+.topnav__more-chevron--open {
+  transform: rotate(180deg);
+}
+
+/* position: fixed, pas absolute : le panneau est rendu via un portail
+   dans document.body (voir NavMoreMenu dans Navbar.jsx — nécessaire pour
+   échapper au overflow-x: auto de .topnav__links, qui aurait sinon
+   découpé un panneau positionné en absolute juste en dessous). top/left
+   sont posés en inline style, calculés depuis le bouton à l'ouverture. */
+.topnav__more-popover {
+  position: fixed;
+  z-index: 150;
+  width: 190px;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.topnav__more-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.topnav__more-link svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.topnav__more-link:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.topnav__more-link--active {
+  color: var(--brand-red);
+}
+
+.topnav__more-link--active svg {
+  opacity: 1;
+}
+
+/* Version mobile : accordéon en flux normal sous "Plus" (voir NavMoreMenu),
+   pas un popover flottant — évite tout chevauchement avec les boutons du
+   panneau déroulant juste en dessous (son, thème, réglages…). */
+.topnav__more-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 14px;
+  overflow: hidden;
+}
+
+.topnav__more-link--inline {
+  padding: 9px 8px;
+}
+
+/* En mobile, "Plus" + son accordéon empilent verticalement (le
+   déclencheur doit aussi s'étirer comme les autres liens du panneau
+   déroulant — voir .topnav__link, dont la largeur vient du
+   `align-items: stretch` de .topnav__links). NavMoreMenu bascule déjà sur
+   l'accordéon en flux normal à cette largeur (voir .topnav__more-inline) ;
+   ces règles ne concernent que la mise en page du déclencheur lui-même. */
+@media (max-width: 980px) {
+  .topnav__more {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .topnav__more-trigger {
+    width: 100%;
+  }
+}
+
 /* ---------- Actions à droite ---------- */
 .topnav__actions {
   display: flex;

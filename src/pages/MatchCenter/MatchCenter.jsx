@@ -33,6 +33,7 @@ const emptyForm = {
   matchDate: '',
   matchTime: '',
   notes: '',
+  vodUrl: '',
   maps: [emptyMapRow()],
 }
 
@@ -127,6 +128,7 @@ export default function MatchCenter() {
       matchDate: match.matchDate || '',
       matchTime: match.matchTime || '',
       notes: match.notes || '',
+      vodUrl: match.vodUrl || '',
       maps: mapsToFormRows(match),
     })
     setFormOpen(true)
@@ -144,6 +146,7 @@ export default function MatchCenter() {
       matchDate: match.matchDate || '',
       matchTime: match.matchTime || '',
       notes: match.notes || '',
+      vodUrl: match.vodUrl || '',
       maps: mapsToFormRows(match),
     })
     setFormOpen(true)
@@ -193,6 +196,7 @@ export default function MatchCenter() {
       matchDate: form.matchDate || null,
       matchTime: form.matchTime || null,
       notes: form.notes.trim(),
+      vodUrl: form.vodUrl.trim() || null,
     }
 
     const formatLabel = FORMAT_META[form.format].label
@@ -475,6 +479,7 @@ export default function MatchCenter() {
                 <th>Manches</th>
                 <th>Adversaire</th>
                 <th>Date</th>
+                <th>VOD</th>
                 {isAdmin && <th aria-label="Actions" />}
               </tr>
             </thead>
@@ -517,6 +522,23 @@ export default function MatchCenter() {
                       {match.matchDate
                         ? new Date(match.matchDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
                         : '—'}
+                    </td>
+                    <td>
+                      {match.vodUrl ? (
+                        <a
+                          href={match.vodUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="match-history-table__vod-link"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M8 6.5v11l9-5.5-9-5.5Z" fill="currentColor" />
+                          </svg>
+                          VOD
+                        </a>
+                      ) : (
+                        <span className="match-history-table__muted">—</span>
+                      )}
                     </td>
                     {isAdmin && (
                       <td className="match-history-table__actions">
@@ -707,6 +729,18 @@ export default function MatchCenter() {
                   />
                 </label>
               </div>
+
+              {formMode === 'played' && (
+                <label className="player-form__field">
+                  <span>Lien VOD (optionnel)</span>
+                  <input
+                    type="url"
+                    value={form.vodUrl}
+                    onChange={(e) => setForm((f) => ({ ...f, vodUrl: e.target.value }))}
+                    placeholder="https://twitch.tv/videos/… ou https://youtube.com/…"
+                  />
+                </label>
+              )}
 
               <label className="player-form__field">
                 <span>Notes (optionnel)</span>

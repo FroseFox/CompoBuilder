@@ -1,22 +1,35 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useTheme } from '../../context/ThemeContext'
 import { useSound } from '../../context/SoundContext'
 import { useAuth } from '../../context/AuthContext'
 import { useCompositions } from '../../context/CompositionsContext'
 import { useToast } from '../../context/ToastContext'
+import { useEscapeToClose } from '../../hooks/useEscapeToClose'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import ConfirmDialog from '../ConfirmDialog/ConfirmDialog'
 import GlobalSearch from '../GlobalSearch/GlobalSearch'
 import AuthPanel from '../AuthPanel/AuthPanel'
 import TeamSettingsModal from '../TeamSettingsModal/TeamSettingsModal'
 import './Navbar.css'
 
-const NAV_ITEMS = [
+// Onglets du quotidien, toujours visibles. Les autres (consultés plus
+// ponctuellement) vivent sous le menu déroulant "Plus" — voir
+// MORE_NAV_ITEMS et NavMoreMenu ci-dessous — pour ne pas surcharger la
+// barre à mesure que le site gagne des pages. Même comportement en
+// desktop (popover positionné sous le déclencheur) et en mobile (le
+// popover s'ouvre par-dessus le reste du panneau déroulant) : un seul
+// composant, pas de liste à plat dupliquée.
+const PRIMARY_NAV_ITEMS = [
   { to: '/', label: 'Maps', icon: MapsIcon, end: true },
   { to: '/team', label: 'Équipe', icon: TeamIcon },
-  { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/matchcenter', label: 'Match Center', icon: MatchIcon },
+]
+
+const MORE_NAV_ITEMS = [
+  { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/stats', label: 'Statistiques', icon: StatsIcon },
   { to: '/disponibilites', label: 'Dispos', icon: ClockIcon },
 ]
@@ -66,7 +79,7 @@ export default function Navbar() {
           </Link>
 
           <nav className={`topnav__links ${mobileMenuOpen ? 'topnav__links--open' : ''}`}>
-            {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            {PRIMARY_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -91,6 +104,8 @@ export default function Navbar() {
                 )}
               </NavLink>
             ))}
+
+            <NavMoreMenu onNavigate={() => setMobileMenuOpen(false)} />
 
             <div className="topnav__mobile-actions">
               <button className="btn btn-ghost" onClick={toggleSound}>
@@ -210,6 +225,177 @@ export default function Navbar() {
         onCancel={() => setConfirmOpen(false)}
       />
     </>
+  )
+}
+
+/**
+ * Onglet "Plus" : regroupe les pages consultées plus ponctuellement
+ * (Dashboard, Statistiques, Dispos) derrière un menu déroulant, pour ne
+ * pas surcharger la barre de nav à plat — voir MORE_NAV_ITEMS. Reste
+ * actif visuellement (barre d'accent) quand une des pages qu'il
+ * regroupe est la page courante, même repliée.
+ *
+ * Deux présentations bien différentes selon l'espace disponible, pas
+ * juste une histoire de position :
+ * - Desktop : un vrai popover flottant, rendu via un portail dans
+ *   document.body plutôt qu'à sa place naturelle — le bouton vit dans
+ *   .topnav__links, qui a besoin d'un défilement horizontal
+ *   (overflow-x: auto) pour les écrans étroits, or poser overflow-x sans
+ *   overflow-y force ce dernier à 'auto' aussi (règle CSS peu connue),
+ *   ce qui aurait découpé net un panneau positionné en absolute à
+ *   l'intérieur. Le portail contourne le problème ; sa position
+ *   (calculée depuis le bouton à l'ouverture) le fait à la place.
+ * - Mobile : le panneau déroulant plein écran est déjà une liste
+ *   verticale en flux normal — un popover flottant par-dessus y
+ *   chevaucherait les boutons juste en dessous (son/thème/réglages).
+ *   Les 3 liens s'insèrent donc simplement en accordéon, dans le flux,
+ *   juste sous "Plus" : ils poussent le reste vers le bas au lieu de
+ *   le recouvrir.
+ */
+function NavMoreMenu({ onNavigate }) {
+  const location = useLocation()
+  const isMobile = useMediaQuery('(max-width: 980px)')
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState(null)
+  const triggerRef = useRef(null)
+  const popoverRef = useRef(null)
+
+  useEscapeToClose(open, () => setOpen(false))
+
+  // Clic en dehors : sur desktop, le déclencheur ET le panneau (rendus
+  // dans deux sous-arbres DOM différents à cause du portail) comptent
+  // tous les deux comme "dedans" — useClickOutside seul ne connaît
+  // qu'une ref. Sur mobile (pas de portail, panneau en flux normal),
+  // triggerRef seul suffirait déjà, mais cette version marche pour les deux.
+  useEffect(() => {
+    if (!open) return undefined
+    const handlePointerDown = (e) => {
+      if (triggerRef.current?.contains(e.target)) return
+      if (popoverRef.current?.contains(e.target)) return
+      setOpen(false)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [open])
+
+  // Referme au changement mobile/desktop (plus simple qu'un recalcul
+  // fidèle de la position du popover desktop) pendant que c'est ouvert.
+  useEffect(() => {
+    if (!open) return undefined
+    const handleResize = () => setOpen(false)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [open])
+
+  const isActive = MORE_NAV_ITEMS.some((item) => location.pathname === item.to)
+
+  const handleToggle = () => {
+    if (!open && !isMobile && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const popoverWidth = 190
+      setCoords({
+        top: rect.bottom + 8,
+        left: Math.min(rect.left, window.innerWidth - popoverWidth - 8),
+      })
+    }
+    setOpen((o) => !o)
+  }
+
+  const handleNavigate = () => {
+    setOpen(false)
+    onNavigate?.()
+  }
+
+  const links = (linkClassName) =>
+    MORE_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+      <NavLink
+        key={to}
+        to={to}
+        className={({ isActive: linkActive }) => `${linkClassName} ${linkActive ? 'topnav__more-link--active' : ''}`}
+        onClick={handleNavigate}
+      >
+        <Icon />
+        <span>{label}</span>
+      </NavLink>
+    ))
+
+  return (
+    <div className="topnav__more">
+      <button
+        type="button"
+        ref={triggerRef}
+        className={`topnav__link topnav__more-trigger ${isActive ? 'topnav__link--active' : ''}`}
+        onClick={handleToggle}
+        aria-expanded={open}
+        aria-haspopup="true"
+      >
+        <span className="topnav__link-content">
+          <MoreIcon />
+          <span>Plus</span>
+          <ChevronIcon className={`topnav__more-chevron ${open ? 'topnav__more-chevron--open' : ''}`} />
+        </span>
+        {isActive && (
+          <motion.span
+            className="topnav__link-bar"
+            layoutId="topnav-active-bar"
+            transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+          />
+        )}
+      </button>
+
+      {isMobile ? (
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div
+              ref={popoverRef}
+              className="topnav__more-inline"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.14, ease: 'easeOut' }}
+            >
+              {links('topnav__more-link topnav__more-link--inline')}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      ) : (
+        createPortal(
+          <AnimatePresence>
+            {open && coords && (
+              <motion.div
+                ref={popoverRef}
+                className="topnav__more-popover glass-panel"
+                style={{ top: coords.top, left: coords.left }}
+                initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 30 } }}
+                exit={{ opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.12 } }}
+              >
+                {links('topnav__more-link')}
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )
+      )}
+    </div>
+  )
+}
+
+function MoreIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <circle cx="5" cy="12" r="1.6" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+      <circle cx="19" cy="12" r="1.6" fill="currentColor" />
+    </svg>
+  )
+}
+
+function ChevronIcon({ className }) {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 

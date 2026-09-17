@@ -88,6 +88,7 @@ function rowToMatch(row) {
     matchDate: row.match_date,
     matchTime: row.match_time ?? null,
     notes: row.notes,
+    vodUrl: row.vod_url ?? null,
     // Validation de présence (comptage global des réactions ✅/❌ sur le
     // message Discord envoyé à la programmation) — null tant qu'aucune
     // synchronisation n'a encore eu lieu.
@@ -320,6 +321,7 @@ export async function insertMatch(draft, mapsDraft = []) {
       match_date: draft.matchDate || null,
       match_time: draft.matchTime || null,
       notes: draft.notes || '',
+      vod_url: draft.vodUrl || null,
     })
     .select()
     .single()
@@ -335,6 +337,7 @@ export async function updateMatchRow(id, patch, mapsDraft) {
   if ('matchDate' in patch) dbPatch.match_date = patch.matchDate
   if ('matchTime' in patch) dbPatch.match_time = patch.matchTime
   if ('notes' in patch) dbPatch.notes = patch.notes
+  if ('vodUrl' in patch) dbPatch.vod_url = patch.vodUrl
   if ('presenceMessageId' in patch) dbPatch.presence_message_id = patch.presenceMessageId
   if ('presenceChannelId' in patch) dbPatch.presence_channel_id = patch.presenceChannelId
   if ('presenceYes' in patch) dbPatch.presence_yes = patch.presenceYes

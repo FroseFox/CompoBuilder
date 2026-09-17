@@ -318,6 +318,24 @@
   color: var(--text-tertiary);
 }
 
+.match-history-table__vod-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--brand-red);
+  white-space: nowrap;
+}
+
+.match-history-table__vod-link:hover {
+  color: var(--brand-red-dim);
+  text-decoration: underline;
+}
+
 .match-history-table__actions {
   display: flex;
   gap: 4px;
