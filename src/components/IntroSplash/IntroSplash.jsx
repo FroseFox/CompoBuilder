@@ -30,9 +30,16 @@ export default function IntroSplash() {
   useEffect(() => {
     // Empêche le défilement pendant l'intro (l'utilisateur ne devrait pas
     // pouvoir "scroller sous" un écran plein cadre censé être immobile).
+    // Restauré dès la fin du délai, PAS seulement au démontage : ce
+    // composant reste monté (juste invisible) tant que la page d'accueil
+    // l'est, donc ne restaurer qu'au démontage bloquait le défilement en
+    // permanence après l'intro — plus moyen de naviguer sur la page.
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const timer = setTimeout(() => setVisible(false), HOLD_MS)
+    const timer = setTimeout(() => {
+      setVisible(false)
+      document.body.style.overflow = previousOverflow
+    }, HOLD_MS)
     return () => {
       clearTimeout(timer)
       document.body.style.overflow = previousOverflow
