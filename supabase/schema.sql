@@ -112,7 +112,15 @@ create index if not exists compositions_map_uuid_idx on public.compositions (map
 
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
-  opponent_name text not null,
+  -- Optionnel : un scrim interne, ou un match dont l'adversaire n'est pas
+  -- encore connu, n'a pas forcément de nom à renseigner ici — voir `type`
+  -- ci-dessous, qui porte désormais la catégorisation principale.
+  opponent_name text,
+  -- 'scrim' (entraînement) ou 'match' (match officiel) — remplace
+  -- l'affichage centré sur l'adversaire ("VS X") dans le Match Center :
+  -- on affiche cette étiquette en priorité, l'adversaire en secondaire.
+  -- Voir migration_016_match_type_and_reminders.sql.
+  type text not null default 'match' check (type in ('scrim', 'match')),
   format text not null default 'bo1' check (format in ('bo1', 'bo3', 'bo5')),
   match_date date,
   match_time time,
@@ -132,6 +140,10 @@ create table if not exists public.matches (
   presence_yes integer,
   presence_no integer,
   presence_synced_at timestamptz,
+  -- Horodatage du rappel Discord envoyé pour ce match (évite les
+  -- doublons) — voir send_match_reminders() plus bas, planifiée via
+  -- pg_cron. Voir migration_016_match_type_and_reminders.sql.
+  reminder_sent_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -488,6 +500,94 @@ drop policy if exists "Modification admin team_settings" on public.team_settings
 create policy "Modification admin team_settings" on public.team_settings for update
   using (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true))
   with check (exists (select 1 from public.profiles where id = (select auth.uid()) and is_admin = true));
+
+-- ============================================================
+-- Rappels automatiques via le bot Discord (webhook), sans serveur
+-- dédié : le site est statique (GitHub Pages), donc c'est Postgres
+-- lui-même qui doit déclencher l'envoi sur une planification —
+-- pg_cron (planification) + pg_net (appel HTTP sortant asynchrone vers
+-- le webhook Discord, directement depuis la base). pg_net doit être
+-- installée hors du schéma public (recommandation du linter de
+-- sécurité Supabase), d'où le `with schema extensions` ci-dessous.
+--
+-- Logique d'un rappel par match (voir send_match_reminders) :
+--   - avec une heure renseignée : dès qu'il reste 1h ou moins avant le
+--     coup d'envoi (et qu'il n'est pas déjà passé) ;
+--   - sans heure renseignée (date seule) : dès que la date programmée
+--     est celle du jour (le premier passage de la tâche ce jour-là).
+-- Un seul rappel par match quel que soit le cas, marqué par
+-- reminder_sent_at pour ne jamais le renvoyer.
+-- Voir migration_016_match_type_and_reminders.sql /
+-- migration_017_harden_match_reminders_security.sql.
+-- ============================================================
+
+create extension if not exists pg_cron;
+create extension if not exists pg_net with schema extensions;
+
+create or replace function public.send_match_reminders()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  webhook text;
+  m record;
+  label text;
+  title text;
+  when_text text;
+begin
+  select discord_webhook_url into webhook from public.team_settings where id = true;
+  if webhook is null or webhook = '' then
+    return;
+  end if;
+
+  for m in
+    select id, type, opponent_name, format, match_date, match_time
+    from public.matches
+    where reminder_sent_at is null
+      and match_date is not null
+      and not exists (
+        select 1 from public.match_maps mm
+        where mm.match_id = matches.id and mm.our_score is not null and mm.opponent_score is not null
+      )
+      and (
+        (match_time is not null and (match_date + match_time) - now() <= interval '1 hour' and (match_date + match_time) > now())
+        or (match_time is null and match_date = current_date)
+      )
+  loop
+    label := case when m.type = 'scrim' then 'Scrim' else 'Match' end;
+    title := label || case when m.opponent_name is not null and m.opponent_name <> '' then ' contre ' || m.opponent_name else '' end;
+    when_text := to_char(m.match_date, 'DD/MM/YYYY') || case when m.match_time is not null then ' à ' || to_char(m.match_time, 'HH24:MI') else '' end;
+
+    perform extensions.http_post(
+      url := webhook,
+      headers := '{"Content-Type": "application/json"}'::jsonb,
+      body := jsonb_build_object(
+        'username', 'MatchNotif',
+        'embeds', jsonb_build_array(jsonb_build_object(
+          'title', '⏰ Rappel — ' || title,
+          'description', 'C''est bientôt l''heure : ' || when_text || '.',
+          'color', 16731733
+        ))
+      )
+    );
+
+    update public.matches set reminder_sent_at = now() where id = m.id;
+  end loop;
+end;
+$$;
+
+-- SECURITY DEFINER mais aucune raison d'être appelable via l'API REST
+-- (PostgREST expose par défaut toute fonction du schéma public aux
+-- rôles anon/authenticated) : seul pg_cron doit pouvoir la déclencher.
+revoke all on function public.send_match_reminders() from public, anon, authenticated;
+
+select cron.schedule(
+  'match-reminders',
+  '*/10 * * * *',
+  $$select public.send_match_reminders();$$
+) where not exists (select 1 from cron.job where jobname = 'match-reminders');
 
 -- ============================================================
 -- Temps réel (synchronisation entre tous les membres connectés)

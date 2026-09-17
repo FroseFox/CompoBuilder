@@ -90,9 +90,34 @@
   min-width: 160px;
 }
 
+.upcoming-match__type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .upcoming-match__opponent {
   font-weight: 700;
   color: var(--text-primary);
+}
+
+/* ---------- Étiquette Scrim / Match ----------
+   Remplace l'ancien affichage centré sur l'adversaire ("VS X") : cette
+   étiquette est désormais l'information affichée en priorité, partout où
+   un match apparaît (liste "à venir", historique, carte Discord). */
+.match-type-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--type-color);
+  padding: 3px 9px;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  background: color-mix(in srgb, var(--type-color) 14%, transparent);
+  white-space: nowrap;
 }
 
 .upcoming-match__meta {
@@ -207,6 +232,37 @@
   align-self: flex-start;
 }
 
+/* ---------- Sélecteur Scrim / Match (formulaire) ---------- */
+.match-center__type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.match-center__type-option {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.match-center__type-option:hover {
+  color: var(--text-primary);
+}
+
+.match-center__type-option--active {
+  border-color: var(--type-color);
+  color: var(--type-color);
+  background: color-mix(in srgb, var(--type-color) 14%, transparent);
+}
+
 /* ---------- Tableau d'historique ---------- */
 
 .match-history-table-shell {
@@ -316,6 +372,12 @@
 
 .match-history-table__muted {
   color: var(--text-tertiary);
+}
+
+.match-history-table__type-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .match-history-table__vod-link {

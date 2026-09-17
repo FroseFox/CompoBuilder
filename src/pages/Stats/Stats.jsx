@@ -14,6 +14,7 @@ import {
   isMatchPlayed,
   isSeriesDecided,
   MATCH_RESULT_META,
+  MATCH_TYPE_META,
 } from '../../utils/matches'
 import ProgressBar from '../../components/ProgressBar/ProgressBar'
 import Loader from '../../components/Loader/Loader'
@@ -100,7 +101,7 @@ export default function Stats() {
                 key={match.id}
                 className="stats-form-chip"
                 style={{ '--result-color': meta.color }}
-                title={`${match.opponentName} · ${formatSeriesScore(match)}`}
+                title={`${match.opponentName || MATCH_TYPE_META[match.matchType]?.label || 'Match'} · ${formatSeriesScore(match)}`}
                 initial={{ opacity: 0, scale: 0.6 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.25, delay: index * 0.04, type: 'spring', stiffness: 400, damping: 24 }}

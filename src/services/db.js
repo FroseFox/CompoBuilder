@@ -84,6 +84,7 @@ function rowToMatch(row) {
   return {
     id: row.id,
     opponentName: row.opponent_name,
+    matchType: row.type || 'match',
     format: row.format,
     matchDate: row.match_date,
     matchTime: row.match_time ?? null,
@@ -316,7 +317,8 @@ export async function insertMatch(draft, mapsDraft = []) {
   const { data, error } = await supabase
     .from('matches')
     .insert({
-      opponent_name: draft.opponentName,
+      opponent_name: draft.opponentName || null,
+      type: draft.matchType || 'match',
       format: draft.format || 'bo1',
       match_date: draft.matchDate || null,
       match_time: draft.matchTime || null,
@@ -332,10 +334,20 @@ export async function insertMatch(draft, mapsDraft = []) {
 
 export async function updateMatchRow(id, patch, mapsDraft) {
   const dbPatch = { updated_at: new Date().toISOString() }
-  if ('opponentName' in patch) dbPatch.opponent_name = patch.opponentName
+  if ('opponentName' in patch) dbPatch.opponent_name = patch.opponentName || null
+  if ('matchType' in patch) dbPatch.type = patch.matchType
   if ('format' in patch) dbPatch.format = patch.format
-  if ('matchDate' in patch) dbPatch.match_date = patch.matchDate
-  if ('matchTime' in patch) dbPatch.match_time = patch.matchTime
+  // Reprogrammer (nouvelle date et/ou heure) doit pouvoir redéclencher un
+  // rappel Discord : sans ça, un match reporté après l'envoi d'un premier
+  // rappel n'en recevrait jamais d'autre (voir send_match_reminders()).
+  if ('matchDate' in patch) {
+    dbPatch.match_date = patch.matchDate
+    dbPatch.reminder_sent_at = null
+  }
+  if ('matchTime' in patch) {
+    dbPatch.match_time = patch.matchTime
+    dbPatch.reminder_sent_at = null
+  }
   if ('notes' in patch) dbPatch.notes = patch.notes
   if ('vodUrl' in patch) dbPatch.vod_url = patch.vodUrl
   if ('presenceMessageId' in patch) dbPatch.presence_message_id = patch.presenceMessageId

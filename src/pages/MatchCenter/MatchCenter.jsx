@@ -17,6 +17,8 @@ import {
   FORMAT_META,
   MATCH_FORMAT,
   MATCH_RESULT_META,
+  MATCH_TYPE,
+  MATCH_TYPE_META,
 } from '../../utils/matches'
 import { sendDiscordMessage, sendDiscordVoteImage, matchResultEmbed } from '../../utils/discordWebhook'
 import { addVoteReactions, getVoteCounts } from '../../utils/discordBot'
@@ -28,6 +30,7 @@ import './MatchCenter.css'
 const emptyMapRow = () => ({ mapUuid: '', compositionId: '', ourScore: '', opponentScore: '' })
 
 const emptyForm = {
+  matchType: MATCH_TYPE.MATCH,
   opponentName: '',
   format: MATCH_FORMAT.BO1,
   matchDate: '',
@@ -123,7 +126,8 @@ export default function MatchCenter() {
     setEditingId(match.id)
     setFormMode(isMatchPlayed(match) ? 'played' : 'scheduled')
     setForm({
-      opponentName: match.opponentName,
+      matchType: match.matchType || MATCH_TYPE.MATCH,
+      opponentName: match.opponentName || '',
       format: match.format,
       matchDate: match.matchDate || '',
       matchTime: match.matchTime || '',
@@ -141,7 +145,8 @@ export default function MatchCenter() {
     setEditingId(match.id)
     setFormMode('played')
     setForm({
-      opponentName: match.opponentName,
+      matchType: match.matchType || MATCH_TYPE.MATCH,
+      opponentName: match.opponentName || '',
       format: match.format,
       matchDate: match.matchDate || '',
       matchTime: match.matchTime || '',
@@ -178,7 +183,9 @@ export default function MatchCenter() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.opponentName.trim() || !form.maps[0]?.mapUuid) return
+    // L'adversaire est optionnel : seule la première manche est requise
+    // (voir MATCH_TYPE — c'est le type Scrim/Match qui catégorise l'entrée).
+    if (!form.maps[0]?.mapUuid) return
     if (formMode === 'scheduled' && !form.matchDate) return
 
     const mapsPayload = form.maps
@@ -191,7 +198,8 @@ export default function MatchCenter() {
       }))
 
     const payload = {
-      opponentName: form.opponentName.trim(),
+      matchType: form.matchType,
+      opponentName: form.opponentName.trim() || null,
       format: form.format,
       matchDate: form.matchDate || null,
       matchTime: form.matchTime || null,
@@ -222,6 +230,7 @@ export default function MatchCenter() {
         sendDiscordMessage(
           matchResultEmbed({
             opponentName: payload.opponentName,
+            matchType: payload.matchType,
             formatLabel,
             seriesScore: formatSeriesScore({ format: form.format, maps: mapsPayload }),
             result: computeMatchResult({ format: form.format, maps: mapsPayload }),
@@ -243,12 +252,13 @@ export default function MatchCenter() {
           // ensuite (voir handleSyncPresence).
           renderMatchCard({
             opponentName: payload.opponentName,
+            matchType: payload.matchType,
             formatLabel: form.format,
             maps: embedMaps.map((m) => ({ name: m.mapName, thumbnail: m.mapThumbnail })),
             matchDate: payload.matchDate,
             matchTime: payload.matchTime,
           })
-            .then((blob) => sendDiscordVoteImage({ blob, filename: matchCardFileName(payload.opponentName) }))
+            .then((blob) => sendDiscordVoteImage({ blob, filename: matchCardFileName(payload.opponentName, payload.matchType) }))
             .then(async (sent) => {
               if (!sent) return
               const { ok: reacted, error: reactError } = await addVoteReactions(sent)
@@ -268,6 +278,7 @@ export default function MatchCenter() {
           sendDiscordMessage(
             matchResultEmbed({
               opponentName: payload.opponentName,
+              matchType: payload.matchType,
               formatLabel,
               seriesScore: formatSeriesScore({ format: form.format, maps: mapsPayload }),
               result: computeMatchResult({ format: form.format, maps: mapsPayload }),
@@ -390,7 +401,15 @@ export default function MatchCenter() {
                     {match.matchTime ? ` à ${match.matchTime.replace(':', 'h')}` : ''}
                   </div>
                   <div className="upcoming-match__info">
-                    <span className="upcoming-match__opponent">{match.opponentName}</span>
+                    <span className="upcoming-match__type-row">
+                      <span
+                        className="match-type-badge"
+                        style={{ '--type-color': MATCH_TYPE_META[match.matchType]?.color }}
+                      >
+                        {MATCH_TYPE_META[match.matchType]?.label || 'Match'}
+                      </span>
+                      {match.opponentName && <span className="upcoming-match__opponent">{match.opponentName}</span>}
+                    </span>
                     <span className="upcoming-match__meta">
                       <span className="upcoming-match__format">{FORMAT_META[match.format]?.label}</span>
                       {' · '}
@@ -477,7 +496,7 @@ export default function MatchCenter() {
                 <th>Score</th>
                 <th>Format</th>
                 <th>Manches</th>
-                <th>Adversaire</th>
+                <th>Type</th>
                 <th>Date</th>
                 <th>VOD</th>
                 {isAdmin && <th aria-label="Actions" />}
@@ -517,7 +536,17 @@ export default function MatchCenter() {
                         })}
                       </div>
                     </td>
-                    <td>{match.opponentName}</td>
+                    <td>
+                      <div className="match-history-table__type-cell">
+                        <span
+                          className="match-type-badge"
+                          style={{ '--type-color': MATCH_TYPE_META[match.matchType]?.color }}
+                        >
+                          {MATCH_TYPE_META[match.matchType]?.label || 'Match'}
+                        </span>
+                        {match.opponentName && <span className="match-history-table__muted"> {match.opponentName}</span>}
+                      </div>
+                    </td>
                     <td className="match-history-table__muted">
                       {match.matchDate
                         ? new Date(match.matchDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -601,14 +630,32 @@ export default function MatchCenter() {
               </h3>
 
               <label className="player-form__field">
-                <span>Adversaire</span>
+                <span>Type</span>
+                <div className="match-center__type-toggle" role="radiogroup" aria-label="Type de match">
+                  {Object.entries(MATCH_TYPE_META).map(([value, meta]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={form.matchType === value}
+                      className={`match-center__type-option${form.matchType === value ? ' match-center__type-option--active' : ''}`}
+                      style={{ '--type-color': meta.color }}
+                      onClick={() => setForm((f) => ({ ...f, matchType: value }))}
+                    >
+                      {meta.label}
+                    </button>
+                  ))}
+                </div>
+              </label>
+
+              <label className="player-form__field">
+                <span>Adversaire (optionnel)</span>
                 <input
                   type="text"
                   autoFocus
-                  required
                   value={form.opponentName}
                   onChange={(e) => setForm((f) => ({ ...f, opponentName: e.target.value }))}
-                  placeholder="Ex. Team Liquid"
+                  placeholder="Ex. Team Liquid — laisser vide si inconnu ou sans objet"
                 />
               </label>
 

@@ -115,7 +115,9 @@ export async function sendDiscordVoteImage({ blob, filename }) {
 
 /**
  * @param {object} params
- * @param {string} params.opponentName
+ * @param {string} [params.opponentName] Optionnel : un scrim, ou un match
+ *   sans adversaire renseigné, n'affiche simplement pas ce champ.
+ * @param {'scrim'|'match'} [params.matchType] Voir MATCH_TYPE dans utils/matches.js.
  * @param {string} params.formatLabel Ex. "Bo1", "Bo3", "Bo5".
  * @param {string} params.seriesScore Score déjà formaté (ex. "13 – 8" en Bo1, "2 – 1" en Bo3/Bo5).
  * @param {'win'|'loss'|'draw'} params.result
@@ -123,18 +125,19 @@ export async function sendDiscordVoteImage({ blob, filename }) {
  *   Une entrée par manche jouée, dans l'ordre. Toujours au moins une entrée.
  *
  * Message structuré en champs (fields) plutôt qu'en une seule phrase :
- * chaque information (adversaire, format, score, détail des manches)
+ * chaque information (type, adversaire, format, score, détail des manches)
  * se lit d'un coup d'œil dans Discord au lieu d'être noyée dans une
  * description à rallonge.
  */
-export function matchResultEmbed({ opponentName, formatLabel, seriesScore, result, maps }) {
+export function matchResultEmbed({ opponentName, matchType, formatLabel, seriesScore, result, maps }) {
   const draw = result === 'draw'
   const won = result === 'win'
   const title = draw ? '➖ Match nul' : won ? '🏆 Victoire !' : '💀 Défaite'
   const color = draw ? WARN_COLOR : won ? SUCCESS_COLOR : DANGER_COLOR
 
   const fields = [
-    { name: 'Adversaire', value: opponentName, inline: true },
+    { name: 'Type', value: matchType === 'scrim' ? 'Scrim' : 'Match', inline: true },
+    ...(opponentName ? [{ name: 'Adversaire', value: opponentName, inline: true }] : []),
     { name: 'Format', value: formatLabel, inline: true },
     { name: 'Score de la série', value: `**${seriesScore}**`, inline: true },
   ]

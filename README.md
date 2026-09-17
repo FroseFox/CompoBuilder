@@ -28,6 +28,7 @@ une seule fois.
 - **React Router** (`HashRouter`, compatible GitHub Pages sans configuration)
 - **Framer Motion** pour les animations
 - **CSS moderne** (variables CSS, `color-mix`, glassmorphism)
+- **vite-plugin-pwa** (manifeste + service worker, app installable)
 
 ## Démarrage
 
@@ -270,9 +271,15 @@ Compléments :
 - Listes rapides des maps à retravailler, en test, ou sans composition
 
 **Match Center**
-- Historique des matchs joués : adversaire, map, composition utilisée,
-  score, date, notes (admin : créer/modifier/supprimer)
+- Historique des matchs joués : type (Scrim/Match), adversaire (optionnel),
+  map(s), composition utilisée, score, date, notes, lien VOD (admin :
+  créer/modifier/supprimer)
 - Résultat (victoire/défaite/nul) calculé automatiquement depuis le score
+- Matchs programmés à l'avance (date/heure), avec annonce et vote de
+  présence (✅/❌) sur Discord
+- Rappel automatique envoyé sur Discord avant un match/scrim programmé
+  (1h avant si une heure est renseignée, le jour même sinon) — voir
+  `send_match_reminders()` planifiée via pg_cron dans le schéma Supabase
 
 **Statistiques**
 - Bilan global (victoires/défaites), forme récente
@@ -301,6 +308,10 @@ Compléments :
   les utilisateurs connectés au site (Supabase Realtime)
 - Thème clair / sombre (préférence locale au navigateur)
 - Entièrement responsive (mobile, tablette, desktop)
+- Installable comme application (PWA) : « Ajouter à l'écran d'accueil »
+  sur mobile, ou l'icône d'installation dans la barre d'adresse sur
+  desktop — l'app se lance alors dans sa propre fenêtre, sans onglet de
+  navigateur, avec un chargement quasi instantané grâce au cache local
 
 ## Fonctionnalités volontairement retirées
 

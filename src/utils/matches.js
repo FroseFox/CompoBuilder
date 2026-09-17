@@ -27,6 +27,23 @@ export const MATCH_RESULT = {
   DRAW: 'draw',
 }
 
+// Catégorie d'une entrée du Match Center — remplace l'affichage centré
+// sur l'adversaire ("VS X") : l'étiquette Scrim/Match est désormais
+// l'information affichée en priorité, l'adversaire devenant secondaire
+// et optionnel (voir migration_016_match_type_and_reminders.sql).
+export const MATCH_TYPE = {
+  SCRIM: 'scrim',
+  MATCH: 'match',
+}
+
+// accent-cyan (déjà utilisé pour les repères "à venir"/planification) pour
+// un scrim d'entraînement ; brand-red (couleur principale du site) pour un
+// match officiel — deux teintes déjà chargées de sens ailleurs dans l'app.
+export const MATCH_TYPE_META = {
+  [MATCH_TYPE.SCRIM]: { label: 'Scrim', color: 'var(--accent-cyan)' },
+  [MATCH_TYPE.MATCH]: { label: 'Match', color: 'var(--brand-red)' },
+}
+
 // Alignées sur les tokens de rôle déjà utilisés partout ailleurs dans
 // l'app (voir STATUS_META dans storage.js) plutôt que des couleurs
 // codées en dur : un seul jeu de teintes sémantiques pour toute l'app.

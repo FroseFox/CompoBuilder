@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // Content-Security-Policy injecté uniquement dans le build de production.
 // Jamais en dev : le script inline injecté par React Fast Refresh (HMR)
@@ -36,10 +37,48 @@ function cspPlugin() {
   }
 }
 
+// PWA (installable sur mobile/desktop) : manifeste + service worker qui met
+// en cache l'app pour un chargement quasi instantané et un fonctionnement
+// hors-ligne partiel (l'historique/les compos déjà chargés restent
+// consultables sans réseau — écrire nécessite toujours Supabase).
+// registerType 'autoUpdate' : la nouvelle version prend le relais toute
+// seule au rechargement suivant, sans bandeau "mettre à jour" à gérer.
+function pwaPlugin() {
+  return VitePWA({
+    registerType: 'autoUpdate',
+    injectRegister: 'auto',
+    includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+    manifest: {
+      name: 'Comp Builder — Compositions Valorant',
+      short_name: 'Comp Builder',
+      description: 'Créez et sauvegardez vos compositions de 5 agents Valorant, pour chaque map, et gérez votre équipe.',
+      // Chemins relatifs : cohérent avec base: './' plus bas, fonctionne
+      // aussi bien en project pages (/CompoBuilder/) qu'en domaine racine.
+      start_url: './',
+      scope: './',
+      display: 'standalone',
+      background_color: '#0a0e14',
+      theme_color: '#0f1923',
+      lang: 'fr',
+      icons: [
+        { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
+        { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
+    },
+    workbox: {
+      // Les appels Supabase (API + websocket temps réel) ne doivent jamais
+      // être servis depuis le cache : seuls les fichiers de l'app (JS/CSS/
+      // polices/images locales) sont précachés par défaut par le plugin.
+      navigateFallbackDenylist: [/^\/rest\//, /^\/auth\//],
+    },
+  })
+}
+
 // base: './' => chemins relatifs, fonctionne tel quel sur GitHub Pages
 // (project pages ou user pages, sans configuration supplémentaire)
 export default defineConfig({
-  plugins: [react(), cspPlugin()],
+  plugins: [react(), cspPlugin(), pwaPlugin()],
   base: './',
   build: {
     rollupOptions: {

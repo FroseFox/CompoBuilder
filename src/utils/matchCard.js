@@ -34,7 +34,9 @@ const FONT_BODY = '"Inter", sans-serif'
 
 /**
  * @param {object} params
- * @param {string} params.opponentName
+ * @param {string} [params.opponentName] Optionnel : un scrim, ou un match
+ *   sans adversaire renseigné, n'affiche que l'étiquette de type.
+ * @param {'scrim'|'match'} [params.matchType] Voir MATCH_TYPE dans utils/matches.js.
  * @param {'bo1'|'bo3'|'bo5'|string} [params.formatLabel] Clé de format (voir MATCH_FORMAT) ou libellé déjà formaté.
  * @param {Array<string|{name:string,thumbnail?:string}>} [params.maps] Une ou
  *   plusieurs maps déjà choisies (peut être vide : "à définir"). Accepte soit
@@ -44,7 +46,7 @@ const FONT_BODY = '"Inter", sans-serif'
  * @param {string} [params.matchTime] Heure au format "HH:MM" (valeur d'un <input type="time">), optionnelle.
  * @returns {Promise<Blob>} PNG
  */
-export async function renderMatchCard({ opponentName, formatLabel, maps = [], matchDate, matchTime }) {
+export async function renderMatchCard({ opponentName, matchType, formatLabel, maps = [], matchDate, matchTime }) {
   await ensureFontsReady()
 
   // Normalise en {name, thumbnail} : accepte aussi bien de simples chaînes
@@ -74,15 +76,19 @@ export async function renderMatchCard({ opponentName, formatLabel, maps = [], ma
   ctx.fillRect(0, 0, W, 260)
 
   // ---------- En-tête ----------
+  // Le type (Scrim/Match) prime sur l'adversaire — voir MATCH_TYPE dans
+  // utils/matches.js — l'adversaire, optionnel, ne reste qu'une précision
+  // secondaire quand elle est renseignée (plus de "VS <adversaire>" systématique).
+  const typeLabel = matchType === 'scrim' ? 'SCRIM' : 'MATCH'
   ctx.fillStyle = '#ff4655'
   ctx.font = `700 13px ${FONT_DISPLAY}`
   if ('letterSpacing' in ctx) ctx.letterSpacing = '1px'
-  ctx.fillText('— COMP BUILDER · MATCH PROGRAMMÉ', 40, 42)
+  ctx.fillText(`— COMP BUILDER · ${typeLabel} PROGRAMMÉ`, 40, 42)
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px'
 
   ctx.fillStyle = '#ece8e1'
   ctx.font = `800 40px ${FONT_DISPLAY}`
-  ctx.fillText(`VS ${(opponentName || 'ADVERSAIRE').toUpperCase()}`, 40, 92)
+  ctx.fillText(opponentName ? `${typeLabel} — ${opponentName.toUpperCase()}` : typeLabel, 40, 92)
 
   // Pastille de format (BO1/BO3/BO5), en haut à droite
   const formatKey = String(formatLabel || '').toLowerCase()
@@ -221,6 +227,6 @@ export async function renderMatchCard({ opponentName, formatLabel, maps = [], ma
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
 }
 
-export function matchCardFileName(opponentName) {
-  return `match-${slugify(opponentName || 'adversaire')}.png`
+export function matchCardFileName(opponentName, matchType) {
+  return `match-${slugify(opponentName || matchType || 'a-venir')}.png`
 }

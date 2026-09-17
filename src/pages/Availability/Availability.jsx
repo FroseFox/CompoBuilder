@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { usePlayers } from '../../context/PlayersContext'
 import { useAvailability } from '../../context/AvailabilityContext'
 import { useMatches } from '../../context/MatchesContext'
+import { MATCH_TYPE_META } from '../../utils/matches'
 import PlayerAvatar from '../../components/PlayerAvatar/PlayerAvatar'
 import Loader from '../../components/Loader/Loader'
 import './Availability.css'
@@ -315,12 +316,16 @@ export default function Availability() {
               >
                 <span className="availability-grid__day-short">{day.short}</span>
                 <span className="availability-grid__day-num">{day.dayNum}</span>
-                {dayMatches.map((m) => (
-                  <span key={m.id} className="availability-grid__match-badge" title={`Match vs ${m.opponentName}`}>
-                    vs {m.opponentName}
-                    {m.matchTime ? ` · ${formatMatchTime(m.matchTime)}` : ''}
-                  </span>
-                ))}
+                {dayMatches.map((m) => {
+                  const typeLabel = MATCH_TYPE_META[m.matchType]?.label || 'Match'
+                  const label = m.opponentName ? `${typeLabel} vs ${m.opponentName}` : typeLabel
+                  return (
+                    <span key={m.id} className="availability-grid__match-badge" title={label}>
+                      {label}
+                      {m.matchTime ? ` · ${formatMatchTime(m.matchTime)}` : ''}
+                    </span>
+                  )
+                })}
               </div>
             )
           })}
