@@ -1,0 +1,44 @@
+.team-settings {
+  width: 100%;
+  max-width: 440px;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.team-settings h3 {
+  font-size: 1.05rem;
+}
+
+.team-settings__hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: -8px;
+}
+
+.team-settings__help {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin-top: -8px;
+}
+
+.team-settings__actions {
+  justify-content: space-between;
+}
+
+.team-settings__actions-right {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .team-settings__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .team-settings__actions-right {
+    justify-content: flex-end;
+  }
+}

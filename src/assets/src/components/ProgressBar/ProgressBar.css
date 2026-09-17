@@ -1,0 +1,26 @@
+.progress-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar__label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+}
+
+.progress-bar__track {
+  height: 8px;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background: var(--brand-red);
+  transition: width var(--dur-slow) var(--ease-out);
+}

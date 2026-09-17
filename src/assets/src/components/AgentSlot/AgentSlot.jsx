@@ -1,0 +1,213 @@
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import RoleBadge from '../RoleBadge/RoleBadge'
+import PlayerSelect from '../PlayerSelect/PlayerSelect'
+import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
+import { playSound } from '../../utils/sound'
+import './AgentSlot.css'
+
+export default function AgentSlot({
+  index,
+  agent,
+  playerId,
+  players,
+  editable = true,
+  onOpenSelection,
+  onRemove,
+  onReorder,
+  onAssignPlayer,
+}) {
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const player = playerId ? players[playerId] : null
+
+  const handleDragStart = (e) => {
+    if (!agent || !editable) return e.preventDefault()
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(index))
+    // Un léger délai laisse le navigateur capturer l'image fantôme
+    // avant qu'on réduise l'opacité de l'élément d'origine.
+    requestAnimationFrame(() => setIsDragging(true))
+  }
+
+  const handleDragEnd = () => {
+    setIsDragging(false)
+    setIsDragOver(false)
+  }
+
+  const handleDragOver = (e) => {
+    if (!editable) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setIsDragOver(true)
+  }
+
+  const handleDrop = (e) => {
+    if (!editable) return
+    e.preventDefault()
+    setIsDragOver(false)
+    const fromIndex = Number(e.dataTransfer.getData('text/plain'))
+    if (!Number.isNaN(fromIndex) && fromIndex !== index) {
+      onReorder(fromIndex, index)
+      playSound('drop')
+    }
+  }
+
+  return (
+    <motion.div
+      layout
+      className={`agent-slot ${agent ? 'agent-slot--filled' : 'agent-slot--empty'} ${
+        isDragOver ? 'agent-slot--drag-over' : ''
+      } ${!editable ? 'agent-slot--readonly' : ''}`}
+      draggable={editable && Boolean(agent)}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={handleDrop}
+      whileHover={editable ? { y: -3 } : undefined}
+      animate={{
+        scale: isDragging ? 0.93 : isDragOver ? 1.035 : 1,
+        opacity: isDragging ? 0.55 : 1,
+        rotate: isDragging ? -1.5 : 0,
+      }}
+      transition={{
+        layout: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+        scale: { type: 'spring', stiffness: 480, damping: 26 },
+        rotate: { type: 'spring', stiffness: 480, damping: 22 },
+        opacity: { duration: 0.15 },
+      }}
+    >
+      <span className="agent-slot__index">{`0${index + 1}`}</span>
+
+      {agent ? (
+        <>
+          {editable && (
+            <button
+              type="button"
+              className="agent-slot__remove"
+              onClick={() => onRemove(index)}
+              aria-label={`Retirer ${agent.name} de la composition`}
+              title="Retirer"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+
+          {editable ? (
+            <button
+              type="button"
+              className="agent-slot__portrait-btn"
+              onClick={() => onOpenSelection(index)}
+              aria-label={`Remplacer ${agent.name}`}
+            >
+              {/* Le portrait plein format est une image lourde (rendu haute
+                  résolution) : on affiche l'icône légère de l'agent en flou
+                  d'arrière-plan pendant son chargement, pour que la case ne
+                  reste jamais vide. */}
+              {agent.icon && (
+                <div
+                  className="agent-slot__portrait-placeholder"
+                  style={{ backgroundImage: `url(${agent.icon})` }}
+                  aria-hidden="true"
+                />
+              )}
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.img
+                  key={agent.uuid}
+                  src={agent.portrait}
+                  alt={agent.name}
+                  className="agent-slot__portrait"
+                  loading="eager"
+                  decoding="async"
+                  initial={{ opacity: 0, scale: 0.88 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                />
+              </AnimatePresence>
+            </button>
+          ) : (
+            <div className="agent-slot__portrait-btn">
+              {agent.icon && (
+                <div
+                  className="agent-slot__portrait-placeholder"
+                  style={{ backgroundImage: `url(${agent.icon})` }}
+                  aria-hidden="true"
+                />
+              )}
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.img
+                  key={agent.uuid}
+                  src={agent.portrait}
+                  alt={agent.name}
+                  className="agent-slot__portrait"
+                  loading="eager"
+                  decoding="async"
+                  initial={{ opacity: 0, scale: 0.88 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 26 }}
+                />
+              </AnimatePresence>
+            </div>
+          )}
+
+          <div className="agent-slot__info">
+            <span className="agent-slot__name">{agent.name}</span>
+            <RoleBadge role={agent.role} size="sm" />
+            {editable ? (
+              <div draggable={false} onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                <PlayerSelect
+                  players={players}
+                  value={playerId}
+                  onChange={(id) => onAssignPlayer(index, id)}
+                  label={`Joueur pour ${agent.name}`}
+                />
+              </div>
+            ) : (
+              <span className="agent-slot__player-readonly">
+                <PlayerAvatar player={player} size="sm" />
+                {player ? player.pseudo : 'Aucun joueur'}
+              </span>
+            )}
+          </div>
+
+          {editable && (
+            <span className="agent-slot__drag-hint" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <circle cx="9" cy="6" r="1.4" fill="currentColor" />
+                <circle cx="15" cy="6" r="1.4" fill="currentColor" />
+                <circle cx="9" cy="12" r="1.4" fill="currentColor" />
+                <circle cx="15" cy="12" r="1.4" fill="currentColor" />
+                <circle cx="9" cy="18" r="1.4" fill="currentColor" />
+                <circle cx="15" cy="18" r="1.4" fill="currentColor" />
+              </svg>
+            </span>
+          )}
+        </>
+      ) : editable ? (
+        <button
+          type="button"
+          className="agent-slot__add"
+          onClick={() => onOpenSelection(index)}
+          aria-label={`Ajouter un agent à l'emplacement ${index + 1}`}
+        >
+          <span className="agent-slot__add-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </span>
+          <span className="agent-slot__add-label">Ajouter</span>
+        </button>
+      ) : (
+        <div className="agent-slot__add agent-slot__add--static">
+          <span className="agent-slot__add-label">Vide</span>
+        </div>
+      )}
+    </motion.div>
+  )
+}

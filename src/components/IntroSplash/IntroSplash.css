@@ -1,0 +1,94 @@
+/* ============================================================
+   Écran d'ouverture (voir IntroSplash.jsx). Couleurs volontairement fixes
+   (pas les variables de thème clair/sombre) : comme les cartes Discord
+   générées en canvas (exportComposition.js / matchCard.js), un écran de
+   démarrage de "jeu" reste sombre quel que soit le thème choisi sur le site.
+   ============================================================ */
+
+.intro-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #0a0e14;
+  overflow: hidden;
+}
+
+.intro-splash__glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 640px;
+  height: 640px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 70, 85, 0.22) 0%, rgba(255, 70, 85, 0) 68%);
+  pointer-events: none;
+}
+
+.intro-splash__mark {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  color: #ff4655;
+  filter: drop-shadow(0 0 22px rgba(255, 70, 85, 0.55));
+}
+
+.intro-splash__mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.intro-splash__title {
+  position: relative;
+  font-family: 'Barlow Condensed', 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  letter-spacing: 0.08em;
+  color: #ece8e1;
+}
+
+.intro-splash__title-accent {
+  color: #ff4655;
+}
+
+.intro-splash__bar-track {
+  position: relative;
+  width: 200px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  clip-path: polygon(4px 0, 100% 0, 100% 100%, 0 100%, 0 4px);
+  overflow: hidden;
+}
+
+.intro-splash__bar-fill {
+  height: 100%;
+  width: 0%;
+  background: #ff4655;
+  /* Durée alignée sur HOLD_MS dans IntroSplash.jsx (moins le délai avant
+     l'apparition de la barre elle-même) : la barre finit de se remplir
+     juste avant que l'écran ne s'efface. */
+  animation: intro-bar-fill 1s ease-out forwards;
+}
+
+@keyframes intro-bar-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-splash__bar-fill {
+    animation: none;
+    width: 100%;
+  }
+}

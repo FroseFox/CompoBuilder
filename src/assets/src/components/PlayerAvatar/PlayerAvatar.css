@@ -1,0 +1,74 @@
+.player-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #0a0e14;
+  background: var(--avatar-color, var(--text-tertiary));
+  border: 2px solid var(--bg-elevated);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.player-avatar--sm {
+  width: 22px;
+  height: 22px;
+  font-size: 0.58rem;
+}
+
+.player-avatar--md {
+  width: 30px;
+  height: 30px;
+  font-size: 0.68rem;
+}
+
+.player-avatar--lg {
+  width: 44px;
+  height: 44px;
+  font-size: 0.9rem;
+}
+
+.player-avatar--empty {
+  background: var(--bg-hover);
+  color: var(--text-tertiary);
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+/* ---------- Badge Discord (voir showDiscordBadge sur PlayerAvatar) ---------- */
+
+.player-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.player-avatar__discord-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  display: flex;
+  line-height: 0;
+  filter: drop-shadow(0 0 1.5px var(--bg-elevated)) drop-shadow(0 0 1.5px var(--bg-elevated));
+}
+
+.player-avatar__discord-badge img {
+  display: block;
+  width: auto;
+  /* Pas de recadrage/arrondi : on garde la forme du logo telle quelle. */
+  object-fit: contain;
+}
+
+.player-avatar__discord-badge--sm img {
+  height: 12px;
+}
+
+.player-avatar__discord-badge--md img {
+  height: 15px;
+}
+
+.player-avatar__discord-badge--lg img {
+  height: 19px;
+}

@@ -1,0 +1,474 @@
+@import './variables.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--dur-med) var(--ease-out), color var(--dur-med) var(--ease-out);
+  overflow-x: hidden;
+}
+
+/* Ambiance tactique en fond de page : une seule lueur rouge, discrète,
+   en haut de l'écran — pas le double halo chaleureux (rouge + ambre) de
+   la version précédente. Sobre, façon menu de jeu plutôt que fond
+   "lifestyle". */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 45% at 50% 0%, var(--brand-red-glow) 0%, transparent 62%);
+  opacity: var(--ambient-glow-opacity);
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Nav en haut (voir Navbar.css) plutôt qu'une colonne latérale : la
+   disposition en menu de jeu (onglets horizontaux en haut) remplace la
+   sidebar de la version précédente. */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.app-layout__main {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.app-layout__main::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  left: 50%;
+  width: min(900px, 90%);
+  height: 360px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at top, var(--brand-red-glow) 0%, transparent 70%);
+  opacity: 0.14;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Coin coupé façon panneau tactique — coupe les angles haut-gauche et
+   bas-droit en diagonale (le motif d'angularité du menu Valorant),
+   réservée aux éléments qui doivent se remarquer (boutons pleins,
+   bannières, logo) plutôt qu'appliquée partout, pour rester "joli" et
+   non "chargé". */
+.cut-corner {
+  clip-path: polygon(
+    var(--corner-cut) 0,
+    100% 0,
+    100% calc(100% - var(--corner-cut)),
+    calc(100% - var(--corner-cut)) 100%,
+    0 100%,
+    0 var(--corner-cut)
+  );
+}
+
+.cut-corner-sm {
+  clip-path: polygon(
+    var(--corner-cut-sm) 0,
+    100% 0,
+    100% calc(100% - var(--corner-cut-sm)),
+    calc(100% - var(--corner-cut-sm)) 100%,
+    0 100%,
+    0 var(--corner-cut-sm)
+  );
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+input, select {
+  font-family: var(--font-body);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* Focus clavier visible, jamais retiré */
+:focus-visible {
+  outline: 2px solid var(--brand-red);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--brand-red-glow);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* Panneau générique — base réutilisée par les cartes (fond plat, façon dashboard esport) */
+.glass-panel {
+  background: var(--bg-panel-solid);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Libellé rouge en majuscules au-dessus d'un titre de section, avec le
+   petit tiret rouge devant. Utilisé sur toutes les pages (Home, Editor,
+   Team, Dashboard, MatchCenter, Stats) : vit ici, dans le CSS chargé
+   partout, plutôt que dans le CSS d'une page précise — sinon il
+   n'apparaît complet (avec le tiret) que sur les pages dont le CSS a
+   déjà été chargé dans la session (bug historique : la version
+   incomplète ici doublait celle, complète, de Home.css).
+   .eyebrow est l'alias neutre à utiliser pour tout nouveau texte de ce
+   type, .home__eyebrow reste pris en charge pour le code existant. */
+.eyebrow,
+.home__eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-red);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eyebrow::before,
+.home__eyebrow::before {
+  content: '';
+  width: 22px;
+  height: 2px;
+  background: var(--brand-red);
+}
+
+/* Panneau d'erreur centré (API/BDD injoignable), utilisé par Home et
+   MatchCenter. Même raison qu'au-dessus : vit ici pour être toujours
+   stylé, quelle que soit la page visitée en premier dans la session. */
+.home__error {
+  padding: var(--space-6);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 480px;
+  margin: var(--space-6) auto;
+}
+
+/* Formulaire modal générique (ajouter/éditer) : structure + champs,
+   partagé par le formulaire joueur (Team.jsx) et le formulaire de match
+   (MatchCenter.jsx). Les couleurs d'identification (player-form__colors,
+   player-form__swatch) restent propres à Team et vivent dans Team.css. */
+.player-form {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.player-form h3 {
+  font-size: 1.05rem;
+}
+
+.player-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.player-form__field input,
+.player-form__field select {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.player-form__field input:focus,
+.player-form__field select:focus {
+  outline: none;
+  border-color: var(--brand-red);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.86rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 11px 20px;
+  border-radius: 2px;
+  /* Coin coupé façon panneau de menu de jeu, sur TOUS les boutons à la
+     fois (plutôt que .cut-corner-sm posée bouton par bouton dans
+     chaque page) : un seul endroit à tenir à jour, effet cohérent
+     partout d'un coup. */
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transition: transform var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0) scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--brand-red);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 22px var(--brand-red-glow);
+}
+.btn-primary:hover {
+  background: #ff5b68;
+  box-shadow: 0 10px 30px var(--brand-red-glow);
+}
+
+.btn-danger {
+  color: var(--brand-red);
+  border-color: var(--brand-red-soft);
+}
+.btn-danger:hover {
+  background: var(--brand-red-soft);
+  border-color: var(--brand-red);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: var(--bg-hover);
+}
+
+.btn-icon {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Cartes stat ----------
+   Partagées par Dashboard, Team et Stats (le total, la répartition par
+   rôle, les indicateurs de forme...). Vivent ici plutôt que dans le CSS
+   d'une page précise : avec le découpage par page (React.lazy), le CSS
+   d'une page n'est chargé que si on visite cette page — les réutiliser
+   depuis un autre fichier de page les laissait sans style tant que le
+   Dashboard n'avait pas été ouvert au moins une fois dans la session. */
+.dashboard__stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.stat-card {
+  position: relative;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-solid);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+/* ---------- Carte à accent coloré ----------
+   Remplace les fins coins en L de la version précédente (jugés trop
+   discrets) par une large bande de couleur en haut de la carte : le
+   repère visuel se voit immédiatement, de loin, et sa couleur porte du
+   sens (statut d'une map, rôle d'un joueur...) au lieu d'être purement
+   décorative. --accent-card-color se définit par carte (inline style ou
+   règle contextuelle) ; le rouge de marque sert de valeur par défaut.
+   Le survol soulève la carte et intensifie l'ombre dans la même teinte. */
+.accent-card,
+.accent-bar-static,
+.corner-frame,
+.stat-card {
+  isolation: isolate;
+}
+
+.accent-card::before,
+.accent-bar-static::before,
+.corner-frame::before,
+.stat-card::before {
+  content: '';
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: var(--space-4);
+  right: var(--space-4);
+  height: var(--accent-bar-size);
+  border-radius: 0 0 4px 4px;
+  background: var(--accent-card-color, var(--brand-red));
+  transform: scaleX(0.4);
+  transform-origin: left center;
+  opacity: 0.7;
+  transition: transform var(--dur-med) var(--ease-spring), opacity var(--dur-fast) var(--ease-out);
+}
+
+.accent-bar-static::before {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+.accent-card:hover::before,
+.accent-card:focus-visible::before,
+.corner-frame:hover::before,
+.corner-frame:focus-visible::before,
+.stat-card:hover::before {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+.accent-card:hover,
+.accent-card:focus-visible,
+.corner-frame:hover,
+.corner-frame:focus-visible,
+.stat-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+  box-shadow: 0 16px 36px -14px color-mix(in srgb, var(--accent-card-color, var(--brand-red)) 70%, transparent);
+}
+
+.stat-card__icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.stat-card__value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2rem;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card__label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.stat-card--validated { --accent-card-color: var(--role-sentinel); }
+.stat-card--validated .stat-card__icon { color: var(--role-sentinel); background: rgba(61, 220, 151, 0.12); }
+.stat-card--validated .stat-card__value { color: var(--role-sentinel); }
+.stat-card--testing { --accent-card-color: var(--role-initiator); }
+.stat-card--testing .stat-card__icon { color: var(--role-initiator); background: rgba(255, 181, 76, 0.12); }
+.stat-card--testing .stat-card__value { color: var(--role-initiator); }
+.stat-card--needs_work { --accent-card-color: var(--role-duelist); }
+.stat-card--needs_work .stat-card__icon { color: var(--role-duelist); background: var(--brand-red-soft); }
+.stat-card--needs_work .stat-card__value { color: var(--role-duelist); }
+.stat-card--todo .stat-card__value { color: var(--text-secondary); }
+.stat-card--empty .stat-card__value { color: var(--text-tertiary); }

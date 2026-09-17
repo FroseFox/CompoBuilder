@@ -1,0 +1,433 @@
+.match-center {
+  padding: var(--space-7) 0 var(--space-8);
+}
+
+.match-center__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.match-center__title {
+  font-size: clamp(1.7rem, 3.4vw, 2.2rem);
+  margin: 8px 0 6px;
+}
+
+.match-center__header p {
+  max-width: 480px;
+}
+
+.match-center__header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.match-center__record {
+  margin-bottom: var(--space-6);
+}
+
+/* ---------- Matchs à venir ---------- */
+
+.match-center__section-header {
+  margin: var(--space-6) 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.match-center__section-header h2 {
+  font-size: 1.15rem;
+}
+
+.match-center__section-header p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.upcoming-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.upcoming-match {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px dashed color-mix(in srgb, var(--accent-cyan) 45%, var(--border-strong));
+  flex-wrap: wrap;
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.upcoming-match:hover {
+  border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+}
+
+.upcoming-match__date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+}
+
+.upcoming-match__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.upcoming-match__type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upcoming-match__opponent {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ---------- Étiquette Scrim / Match ----------
+   Remplace l'ancien affichage centré sur l'adversaire ("VS X") : cette
+   étiquette est désormais l'information affichée en priorité, partout où
+   un match apparaît (liste "à venir", historique, carte Discord). */
+.match-type-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--type-color);
+  padding: 3px 9px;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  background: color-mix(in srgb, var(--type-color) 14%, transparent);
+  white-space: nowrap;
+}
+
+.upcoming-match__meta {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+.upcoming-match__format {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.upcoming-match__presence {
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+}
+
+.upcoming-match__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  .upcoming-match {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .upcoming-match__actions {
+    justify-content: flex-end;
+  }
+}
+
+/* Écrans très étroits (320px et moins) : le bouton "Renseigner le résultat"
+   + les deux icônes ne tiennent plus sur une seule ligne sans déborder de
+   la carte (et donc de la page). Le bouton principal passe sur sa propre
+   ligne, pleine largeur ; les icônes restent groupées juste en dessous. */
+@media (max-width: 380px) {
+  .upcoming-match__actions {
+    justify-content: stretch;
+  }
+  .upcoming-match__actions .btn-primary {
+    flex: 1 1 100%;
+  }
+}
+
+.match-center__empty {
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.match-center__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+/* Formulaire de match : plus large que le player-form générique
+   (420px) pour laisser respirer les manches à 2 colonnes. */
+.match-center__form {
+  max-width: 560px;
+}
+
+.match-center__map-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.match-center__map-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+}
+
+.match-center__map-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.match-center__map-row-remove {
+  border: none;
+  background: transparent;
+  color: var(--brand-red);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 4px;
+}
+
+.match-center__map-row-remove:hover {
+  text-decoration: underline;
+}
+
+.match-center__add-map {
+  align-self: flex-start;
+}
+
+/* ---------- Sélecteur Scrim / Match (formulaire) ---------- */
+.match-center__type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.match-center__type-option {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.match-center__type-option:hover {
+  color: var(--text-primary);
+}
+
+.match-center__type-option--active {
+  border-color: var(--type-color);
+  color: var(--type-color);
+  background: color-mix(in srgb, var(--type-color) 14%, transparent);
+}
+
+/* ---------- Tableau d'historique ---------- */
+
+.match-history-table-shell {
+  position: relative;
+}
+
+.match-history-table-wrap {
+  padding: 0;
+  overflow-x: auto;
+  /* Défilement tactile fluide avec inertie sur iOS/Safari mobile. */
+  -webkit-overflow-scrolling: touch;
+}
+
+.match-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+/* Voile en dégradé sur le bord droit : seule indication qu'il y a plus de
+   colonnes à découvrir en faisant glisser le tableau (utile dès que l'écran
+   est plus étroit que les ~640px du tableau, donc systématiquement sur
+   mobile). Masqué au-delà de 640px puisque le tableau tient alors en entier. */
+.match-history-table-shell__fade {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 28px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg-panel-solid));
+  opacity: 0.9;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+@media (min-width: 640px) {
+  .match-history-table-shell__fade {
+    display: none;
+  }
+}
+
+.match-history-table th,
+.match-history-table td {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.match-history-table thead th {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.match-history-table tbody tr {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.match-history-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.match-history-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.match-history-table__score {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Une série Bo3/Bo5 empile plusieurs manches dans la même cellule ; en
+   Bo1 la liste ne contient qu'une seule ligne (rendu identique à avant). */
+.match-history-table__map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  white-space: normal;
+}
+
+.match-history-table__map {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-history-table__map img {
+  width: 28px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.match-history-table__map-score {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.match-history-table__muted {
+  color: var(--text-tertiary);
+}
+
+.match-history-table__type-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.match-history-table__vod-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--brand-red);
+  white-space: nowrap;
+}
+
+.match-history-table__vod-link:hover {
+  color: var(--brand-red-dim);
+  text-decoration: underline;
+}
+
+.match-history-table__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.match-result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--result-color);
+  padding: 4px 10px 4px 8px;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  background: color-mix(in srgb, var(--result-color) 14%, transparent);
+}
+
+.match-result-badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--result-color);
+  box-shadow: 0 0 6px var(--result-color);
+}
+
+@media (max-width: 480px) {
+  .match-center__form-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,140 @@
+import { Suspense, lazy } from 'react'
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { AnimatePresence, MotionConfig } from 'framer-motion'
+import { ThemeProvider } from './context/ThemeContext'
+import { SoundProvider } from './context/SoundContext'
+import { AuthProvider } from './context/AuthContext'
+import { SettingsProvider } from './context/SettingsContext'
+import { DataProvider } from './context/DataContext'
+import { CompositionsProvider } from './context/CompositionsContext'
+import { PlayersProvider } from './context/PlayersContext'
+import { MatchesProvider } from './context/MatchesContext'
+import { AvailabilityProvider } from './context/AvailabilityContext'
+import { ToastProvider } from './context/ToastContext'
+import { useGameDataSync } from './hooks/useGameDataSync'
+import { isSupabaseConfigured } from './services/supabaseClient'
+import Navbar from './components/Navbar/Navbar'
+import RouteProgress from './components/RouteProgress/RouteProgress'
+import PageTransition from './components/PageTransition/PageTransition'
+import Loader from './components/Loader/Loader'
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
+
+// Chaque page dans son propre chunk : le premier chargement ne télécharge
+// que la page demandée, pas les 6 à la fois (le bundle faisait ~590 Ko
+// d'un seul bloc auparavant).
+const Home = lazy(() => import('./pages/Home/Home'))
+const Editor = lazy(() => import('./pages/Editor/Editor'))
+const Team = lazy(() => import('./pages/Team/Team'))
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'))
+const MatchCenter = lazy(() => import('./pages/MatchCenter/MatchCenter'))
+const Stats = lazy(() => import('./pages/Stats/Stats'))
+const Availability = lazy(() => import('./pages/Availability/Availability'))
+
+/** Rendu à l'intérieur du HashRouter : gère la transition animée entre les pages. */
+function AppRoutes() {
+  const location = useLocation()
+
+  // Le Suspense est imbriqué À L'INTÉRIEUR de chaque PageTransition (donc à
+  // l'intérieur d'AnimatePresence), pas englobant tout le bloc. S'il englobait
+  // AnimatePresence + Routes, un composant lazy pas encore chargé faisait
+  // basculer TOUT le sous-arbre sur le fallback pendant le chargement du
+  // chunk, ce qui démonte AnimatePresence en cours d'animation de sortie et
+  // lui fait perdre le suivi de la page en train de disparaître : elle reste
+  // alors bloquée à l'écran indéfiniment (page blanche après une recherche
+  // puis un clic, par ex.). Avec un Suspense propre à chaque page,
+  // AnimatePresence n'est plus jamais démonté pendant une transition.
+  const pageFallback = <div className="container"><Loader label="Chargement…" /></div>
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Suspense fallback={pageFallback}><Home /></Suspense></PageTransition>} />
+        <Route path="/editor/:mapId" element={<PageTransition><Suspense fallback={pageFallback}><Editor /></Suspense></PageTransition>} />
+        <Route path="/team" element={<PageTransition><Suspense fallback={pageFallback}><Team /></Suspense></PageTransition>} />
+        <Route path="/dashboard" element={<PageTransition><Suspense fallback={pageFallback}><Dashboard /></Suspense></PageTransition>} />
+        <Route path="/matchcenter" element={<PageTransition><Suspense fallback={pageFallback}><MatchCenter /></Suspense></PageTransition>} />
+        <Route path="/stats" element={<PageTransition><Suspense fallback={pageFallback}><Stats /></Suspense></PageTransition>} />
+        <Route path="/disponibilites" element={<PageTransition><Suspense fallback={pageFallback}><Availability /></Suspense></PageTransition>} />
+        {/* Toute URL inconnue renvoie vers l'accueil plutôt que sur une page blanche. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
+  )
+}
+
+/** Rendu à l'intérieur de tous les providers, pour pouvoir utiliser leurs hooks. */
+function AppShell() {
+  useGameDataSync()
+
+  return (
+    <HashRouter>
+      {/* reducedMotion="user" : respecte automatiquement le réglage système
+          "Réduire les animations" pour TOUTES les animations Framer Motion
+          de l'app (transitions de page, sidebar, recherche...). La media
+          query CSS prefers-reduced-motion ne couvre pas ces animations
+          pilotées en JS, d'où ce réglage complémentaire. */}
+      <MotionConfig reducedMotion="user">
+        <RouteProgress />
+        <div className="app-layout">
+          <Navbar />
+          <div className="app-layout__main">
+            <AppRoutes />
+          </div>
+        </div>
+      </MotionConfig>
+    </HashRouter>
+  )
+}
+
+/** Écran affiché si le fichier .env est manquant ou incomplet — voir README. */
+function SupabaseSetupNotice() {
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#0b1119', color: '#ece8e1', fontFamily: 'system-ui, sans-serif', padding: 24,
+    }}>
+      <div style={{ maxWidth: 480, textAlign: 'center' }}>
+        <h1 style={{ fontSize: '1.3rem', marginBottom: 12 }}>Configuration Supabase manquante</h1>
+        <p style={{ color: '#97a3ad', lineHeight: 1.6 }}>
+          Le fichier <code>.env</code> n'existe pas encore, ou il lui manque
+          <code> VITE_SUPABASE_URL</code> / <code>VITE_SUPABASE_ANON_KEY</code>.
+          Copiez <code>.env.example</code> en <code>.env</code>, remplissez les deux valeurs
+          depuis votre projet Supabase, puis relancez <code>npm run dev</code>.
+          Voir le README, section « Connecter Supabase ».
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default function App() {
+  if (!isSupabaseConfigured) {
+    return <SupabaseSetupNotice />
+  }
+
+  return (
+    <ErrorBoundary>
+      <ThemeProvider>
+        <SoundProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <SettingsProvider>
+                <DataProvider>
+                  <PlayersProvider>
+                    <AvailabilityProvider>
+                      <CompositionsProvider>
+                        <MatchesProvider>
+                          <AppShell />
+                        </MatchesProvider>
+                      </CompositionsProvider>
+                    </AvailabilityProvider>
+                  </PlayersProvider>
+                </DataProvider>
+              </SettingsProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </SoundProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  )
+}

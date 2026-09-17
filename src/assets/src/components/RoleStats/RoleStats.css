@@ -1,0 +1,51 @@
+.role-stats {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.role-stats--empty {
+  padding: var(--space-3) 0;
+}
+
+.role-stats--empty p {
+  font-size: 0.86rem;
+  color: var(--text-tertiary);
+}
+
+.role-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  min-width: 92px;
+}
+
+.role-stat__count {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.role-stat__label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-stat--duelist .role-stat__count { color: var(--role-duelist); }
+.role-stat--controller .role-stat__count { color: var(--role-controller); }
+.role-stat--initiator .role-stat__count { color: var(--role-initiator); }
+.role-stat--sentinel .role-stat__count { color: var(--role-sentinel); }
+
+@media (max-width: 480px) {
+  .role-stat {
+    min-width: 78px;
+    padding: 8px 12px;
+  }
+}

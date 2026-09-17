@@ -1,0 +1,119 @@
+.comp-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.comp-tabs__list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.comp-tab {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-hover);
+  padding: 4px;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.comp-tab--active {
+  border-color: var(--brand-red);
+  background: var(--brand-red-soft);
+}
+
+.comp-tab__star {
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  padding: 4px 2px 4px 6px;
+  line-height: 1;
+  filter: grayscale(0);
+}
+
+.comp-tab__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 6px 6px;
+  white-space: nowrap;
+}
+
+.comp-tab__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-color);
+  box-shadow: 0 0 6px var(--status-color);
+  flex-shrink: 0;
+}
+
+.comp-tab__rename-input {
+  border: 1px solid var(--brand-red);
+  border-radius: 5px;
+  background: var(--bg-panel-solid);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  padding: 5px 8px;
+  width: 140px;
+}
+
+.comp-tab__rename-input:focus {
+  outline: none;
+}
+
+.comp-tab__menu {
+  display: flex;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.comp-tab__menu button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  border-radius: 5px;
+  color: var(--text-tertiary);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.comp-tab__menu button:hover {
+  color: var(--brand-red);
+  background: var(--bg-panel-solid);
+}
+
+.comp-tabs__add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  background: transparent;
+  transition: all var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.comp-tabs__add:hover {
+  color: var(--brand-red);
+  border-color: var(--brand-red);
+}

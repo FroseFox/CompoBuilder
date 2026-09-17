@@ -1,0 +1,178 @@
+.dashboard {
+  padding: var(--space-6) 0 var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* .dashboard__eyebrow utilise désormais le style partagé .eyebrow
+   (global.css), pour rester cohérent avec le tiret rouge affiché sur
+   Home/Team/Editor/MatchCenter/Stats. */
+
+.dashboard__header p {
+  margin-top: 6px;
+}
+
+.dashboard__title {
+  font-size: clamp(1.7rem, 3.4vw, 2.2rem);
+  margin: 8px 0 4px;
+}
+
+/* ---------- Hero : progression + répartition ---------- */
+.dashboard__hero {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-4);
+}
+
+.dashboard__hero-progress,
+.dashboard__hero-side {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-solid);
+  padding: var(--space-5);
+}
+
+.panel-eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.dashboard__hero-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.6rem;
+  color: var(--text-primary);
+  margin: 6px 0 var(--space-3);
+}
+
+.dashboard__hero-caption {
+  margin-top: var(--space-3);
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.dashboard__hero-side-list {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard__hero-side-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.dashboard__hero-side-list b {
+  margin-left: auto;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot--validated { background: var(--role-sentinel); }
+.dot--testing { background: var(--role-initiator); }
+.dot--needs_work { background: var(--role-duelist); }
+.dot--todo { background: var(--text-tertiary); }
+
+@media (max-width: 800px) {
+  .dashboard__hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Cartes stat ----------
+   Déplacées dans global.css : .stat-card et .dashboard__stat-grid sont
+   aussi utilisées par Team.jsx et Stats.jsx. Un composant chargé par
+   React.lazy n'embarque que son propre fichier CSS — en arrivant
+   directement sur /team ou /stats sans être passé par /dashboard, ces
+   classes n'étaient jamais chargées et s'affichaient sans aucun style
+   (texte brut collé, sans cartes ni espacement). */
+
+/* ---------- Listes de maps ---------- */
+.dashboard__lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.dashboard__bucket {
+  position: relative;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-solid);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.dashboard__bucket:hover {
+  border-color: var(--border-strong);
+}
+
+.dashboard__bucket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.dashboard__bucket h3 {
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard__bucket-count {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  background: var(--bg-hover);
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  padding: 2px 9px;
+}
+
+.dashboard__bucket-empty {
+  font-size: 0.82rem;
+}
+
+.dashboard__bucket ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard__bucket a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.dashboard__bucket a:hover {
+  background: var(--bg-hover);
+  color: var(--brand-red);
+  transform: translateX(3px);
+}
