@@ -146,6 +146,13 @@
 .availability-grid-wrap {
   padding: var(--space-4);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Même correctif que le tableau du Match Center : sans ça, un doigt qui
+     glisse même légèrement en diagonale se fait « voler » par le défilement
+     vertical de la page au lieu de faire défiler la grille (760px de large
+     mini, largement plus que l'écran sur mobile). */
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 
 .availability-grid {

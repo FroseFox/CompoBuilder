@@ -274,6 +274,16 @@
   overflow-x: auto;
   /* Défilement tactile fluide avec inertie sur iOS/Safari mobile. */
   -webkit-overflow-scrolling: touch;
+  /* Sans ça, un doigt qui glisse même très légèrement en diagonale (quasi
+     inévitable en pratique) se fait « voler » par le défilement vertical de
+     la page : le navigateur choisit un seul axe de scroll dès les tout
+     premiers pixels du geste, et sans indication penche pour la page plutôt
+     que ce tableau — impression que le tableau ne défile jamais sur mobile.
+     touch-action: pan-x force l'axe horizontal pour tout geste démarré ici ;
+     overscroll-behavior-x: contain empêche en plus qu'une fois arrivé en
+     butée, le reste du geste ne remonte au parent (rebond visuel indésirable). */
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 
 .match-history-table {

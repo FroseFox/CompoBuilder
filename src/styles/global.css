@@ -250,6 +250,17 @@ img {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  /* Sans ça, un formulaire plus haut que l'écran (beaucoup de champs, ou
+     plusieurs manches pour un match Bo3/Bo5) déborde du panneau centré dans
+     .confirm-scrim, qui ne défile pas lui-même : le bas du formulaire
+     devient tout simplement inatteignable, sans aucun moyen de défiler pour
+     l'atteindre — surtout visible sur mobile où la hauteur d'écran utile est
+     réduite. Même traitement que .compare-modal, qui n'a jamais eu ce
+     problème grâce à ces deux lignes. */
+  max-height: calc(100vh - 2 * var(--space-4));
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .player-form h3 {

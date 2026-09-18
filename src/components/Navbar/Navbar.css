@@ -82,6 +82,8 @@
      propre largeur de texte, en white-space: nowrap). */
   overflow-x: auto;
   scrollbar-width: none;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 
 .topnav__links::-webkit-scrollbar {

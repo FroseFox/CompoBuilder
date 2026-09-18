@@ -13,6 +13,7 @@ import ConfirmDialog from '../ConfirmDialog/ConfirmDialog'
 import GlobalSearch from '../GlobalSearch/GlobalSearch'
 import AuthPanel from '../AuthPanel/AuthPanel'
 import TeamSettingsModal from '../TeamSettingsModal/TeamSettingsModal'
+import InstallAppButton from '../InstallAppButton/InstallAppButton'
 import './Navbar.css'
 
 // Onglets du quotidien, toujours visibles. Les autres (consultés plus
@@ -114,6 +115,7 @@ export default function Navbar() {
               <button className="btn btn-ghost" onClick={toggleTheme}>
                 {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
               </button>
+              <InstallAppButton variant="text" />
               {isAdmin && (
                 <button
                   className="btn btn-ghost"
@@ -171,6 +173,8 @@ export default function Navbar() {
             >
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
+
+            <InstallAppButton variant="icon" />
 
             {isAdmin && (
               <button

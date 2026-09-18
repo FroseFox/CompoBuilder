@@ -5,6 +5,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  /* Voir le commentaire équivalent sur .player-form (global.css) : sans
+     limite de hauteur + défilement interne, un panneau plus haut que
+     l'écran devient partiellement inatteignable dans .confirm-scrim. */
+  max-height: calc(100vh - 2 * var(--space-4));
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .team-settings h3 {
