@@ -7,24 +7,17 @@ import { useToast } from '../../context/ToastContext'
 import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
+import discordMark from '../../assets/discord-mark.png'
 import './AuthPanel.css'
 
 /**
- * Icône utilisée uniquement pour le bouton "Connexion Discord" (pas encore
- * connecté). Une fois connecté, le badge sur l'avatar vient plutôt du logo
- * fourni par l'utilisateur — voir PlayerAvatar/showDiscordBadge.
+ * Icône utilisée pour le bouton "Connexion Discord" (pas encore connecté) —
+ * le même fichier que le badge affiché sur l'avatar une fois connecté (voir
+ * PlayerAvatar/showDiscordBadge), pour ne garder qu'une seule image à
+ * remplacer si besoin : src/assets/discord-mark.png.
  */
 function DiscordMark({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M12 3c3.3 0 5.9 1 7.6 2.9 1.7 2 2.2 4.8 1.4 7.9-.5 1.9-1.7 3.3-3.5 4.2-1.5.7-3.4 1-5.5 1s-4-.3-5.5-1c-1.8-.9-3-2.3-3.5-4.2-.8-3.1-.3-5.9 1.4-7.9C6.1 4 8.7 3 12 3Z"
-        fill="#5865f2"
-      />
-      <circle cx="9" cy="12.5" r="1.4" fill="#fff" />
-      <circle cx="15" cy="12.5" r="1.4" fill="#fff" />
-    </svg>
-  )
+  return <img src={discordMark} alt="" style={{ height: size, width: 'auto', display: 'block' }} />
 }
 
 /**
