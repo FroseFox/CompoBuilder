@@ -325,6 +325,68 @@ $$;
 revoke all on function public.ban_and_remove_player(uuid) from public;
 grant execute on function public.ban_and_remove_player(uuid) to authenticated;
 
+-- Rend un membre de l'effectif administrateur (ou lui retire ce droit)
+-- depuis la page Équipe, sans passer par le SQL Editor. La fiche joueur
+-- doit déjà être reliée à un compte (user_id non nul, donc déjà connectée
+-- au moins une fois avec Discord) — impossible de rendre admin une fiche
+-- créée à la main et jamais reliée à un compte. Réservé aux admins,
+-- vérifié dans la fonction elle-même puisque SECURITY DEFINER contourne
+-- les policies RLS de `profiles` (qui n'autorisent aucune écriture, même
+-- pour un admin — voir plus bas). Appelée depuis le site via
+-- supabase.rpc('set_player_admin', ...).
+create or replace function public.set_player_admin(target_player_id uuid, make_admin boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid;
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and is_admin = true) then
+    raise exception 'Réservé aux administrateurs.';
+  end if;
+
+  select user_id into v_user_id from public.players where id = target_player_id;
+
+  if v_user_id is null then
+    raise exception 'Ce joueur doit s''être connecté au moins une fois avec Discord avant de pouvoir devenir administrateur.';
+  end if;
+
+  update public.profiles set is_admin = make_admin where id = v_user_id;
+end;
+$$;
+
+revoke all on function public.set_player_admin(uuid, boolean) from public;
+grant execute on function public.set_player_admin(uuid, boolean) to authenticated;
+
+-- Liste les fiches joueur (par player.id, pas par user_id) dont le compte
+-- lié est déjà administrateur — sert à afficher l'état actuel sur la page
+-- Équipe. Réservé aux admins pour la même raison que ci-dessus : `profiles`
+-- n'expose (en lecture) que sa propre ligne, une simple requête côté
+-- client ne peut donc pas savoir qui d'autre est admin.
+create or replace function public.list_admin_player_ids()
+returns table(player_id uuid)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (select 1 from public.profiles where id = auth.uid() and is_admin = true) then
+    raise exception 'Réservé aux administrateurs.';
+  end if;
+
+  return query
+    select p.id
+    from public.players p
+    join public.profiles pr on pr.id = p.user_id
+    where pr.is_admin = true;
+end;
+$$;
+
+revoke all on function public.list_admin_player_ids() from public;
+grant execute on function public.list_admin_player_ids() to authenticated;
+
 -- ============================================================
 -- Sécurité (Row Level Security)
 --

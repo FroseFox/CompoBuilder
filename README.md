@@ -99,10 +99,18 @@ Il n'y a plus de formulaire email/mot de passe.
   dans `supabase/schema.sql`. Rien à "associer" à la main dans le cas
   normal ; ce joueur ne peut cocher que ses propres disponibilités.
 - **Administrateur** : n'importe quel compte Discord, marqué
-  `is_admin = true` dans la table `profiles` (toujours réglé à la main
-  dans le dashboard Supabase — voir l'étape 4 en bas de `schema.sql`).
-  Peut tout créer/modifier/supprimer, et cocher les disponibilités de
-  n'importe quel joueur.
+  `is_admin = true` dans la table `profiles`. Peut tout créer/modifier/
+  supprimer, et cocher les disponibilités de n'importe quel joueur. Le
+  tout premier admin doit être réglé à la main dans le dashboard Supabase
+  (SQL Editor — voir l'étape 6 de `GUIDE_SUPABASE.md`, effet immédiat, pas
+  besoin d'appliquer `migration_018_promote_admin.sql` pour ça). Une fois
+  qu'au moins un admin existe, promouvoir les suivants ne demande plus de
+  SQL : sur la page Équipe, un bouton étoile apparaît sur chaque joueur
+  déjà connecté au moins une fois avec Discord (RPC `set_player_admin()` /
+  `list_admin_player_ids()`, ajoutées par `migration_018_promote_admin.sql`
+  — à appliquer une seule fois). Un admin ne peut pas modifier ses propres
+  droits par ce bouton, pour éviter de se retirer par erreur son seul
+  accès.
 - **Retirer quelqu'un de l'effectif** (bouton "Supprimer" sur la page
   Équipe, réservé aux admins) : pour une fiche reliée à un compte Discord,
   ce bouton bannit aussi son `discord_id` (RPC `ban_and_remove_player()`).

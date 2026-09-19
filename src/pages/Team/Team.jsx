@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../../context/DataContext'
 import { usePlayers } from '../../context/PlayersContext'
 import { useCompositions } from '../../context/CompositionsContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { PLAYER_COLORS, FLEX_ROLE } from '../../utils/storage'
+import { fetchAdminPlayerIds, setPlayerAdminRow } from '../../services/db'
 import PlayerAvatar from '../../components/PlayerAvatar/PlayerAvatar'
 import RoleBadge from '../../components/RoleBadge/RoleBadge'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
@@ -29,7 +30,7 @@ export default function Team() {
   const { agents } = useData()
   const { players, addPlayer, updatePlayer, deletePlayer, banAndRemovePlayer } = usePlayers()
   const { unassignPlayerEverywhere } = useCompositions()
-  const { isAdmin } = useAuth()
+  const { isAdmin, user } = useAuth()
   const { pushToast } = useToast()
 
   const [formOpen, setFormOpen] = useState(false)
@@ -38,6 +39,46 @@ export default function Team() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const [roleFilter, setRoleFilter] = useState('all')
+
+  // Qui est déjà admin — uniquement consultable (et modifiable) par un
+  // admin lui-même, voir list_admin_player_ids() côté base.
+  const [adminPlayerIds, setAdminPlayerIds] = useState(() => new Set())
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setAdminPlayerIds(new Set())
+      return undefined
+    }
+    let cancelled = false
+    fetchAdminPlayerIds()
+      .then((ids) => {
+        if (!cancelled) setAdminPlayerIds(new Set(ids))
+      })
+      .catch((err) => console.error(err))
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin])
+
+  const handleToggleAdmin = async (player) => {
+    const makeAdmin = !adminPlayerIds.has(player.id)
+    try {
+      await setPlayerAdminRow(player.id, makeAdmin)
+      setAdminPlayerIds((prev) => {
+        const next = new Set(prev)
+        if (makeAdmin) next.add(player.id)
+        else next.delete(player.id)
+        return next
+      })
+      pushToast(
+        makeAdmin ? `${player.pseudo} est maintenant administrateur.` : `${player.pseudo} n'est plus administrateur.`,
+        'success'
+      )
+    } catch (err) {
+      console.error(err)
+      pushToast("Impossible de modifier les droits d'administrateur.", 'error')
+    }
+  }
 
   const roles = useMemo(() => {
     const map = new Map()
@@ -210,6 +251,38 @@ export default function Team() {
                 </div>
                 {isAdmin && (
                   <div className="player-card__actions">
+                    {player.userId && (
+                      <button
+                        type="button"
+                        className={`btn btn-ghost btn-icon player-card__admin-btn ${
+                          adminPlayerIds.has(player.id) ? 'player-card__admin-btn--active' : ''
+                        }`}
+                        onClick={() => handleToggleAdmin(player)}
+                        disabled={player.userId === user?.id}
+                        title={
+                          player.userId === user?.id
+                            ? 'Vous ne pouvez pas modifier vos propres droits administrateur'
+                            : adminPlayerIds.has(player.id)
+                              ? 'Administrateur — cliquer pour retirer ce droit'
+                              : 'Rendre administrateur'
+                        }
+                        aria-label={
+                          adminPlayerIds.has(player.id)
+                            ? `Retirer les droits administrateur à ${player.pseudo}`
+                            : `Rendre ${player.pseudo} administrateur`
+                        }
+                        aria-pressed={adminPlayerIds.has(player.id)}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill={adminPlayerIds.has(player.id) ? 'currentColor' : 'none'}>
+                          <path
+                            d="M12 2.5 14.6 8.6l6.6.6-5 4.4 1.5 6.5L12 16.9l-5.7 3.2 1.5-6.5-5-4.4 6.6-.6Z"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    )}
                     <button className="btn btn-ghost btn-icon" onClick={() => openEdit(player)} aria-label={`Modifier ${player.pseudo}`}>
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                         <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />

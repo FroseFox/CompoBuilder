@@ -117,6 +117,17 @@
   flex-shrink: 0;
 }
 
+/* Étoile pleine + teinte ambrée quand ce joueur est déjà administrateur ;
+   creuse/neutre sinon (voir le toggle dans Team.jsx). */
+.player-card__admin-btn--active {
+  color: var(--accent-amber);
+}
+
+.player-card__admin-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ---------- Formulaire joueur ---------- */
 
 /* .player-form et .player-form__field vivent dans global.css : ce

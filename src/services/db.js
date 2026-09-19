@@ -166,6 +166,28 @@ export async function banAndRemovePlayerRow(playerId) {
   if (error) throw error
 }
 
+/**
+ * Bascule le droit administrateur d'un joueur déjà relié à un compte
+ * (RPC public.set_player_admin — voir supabase/schema.sql). Échoue si la
+ * fiche n'a pas de userId (jamais connectée avec Discord) ou si l'appelant
+ * n'est pas lui-même admin.
+ */
+export async function setPlayerAdminRow(playerId, makeAdmin) {
+  const { error } = await supabase.rpc('set_player_admin', { target_player_id: playerId, make_admin: makeAdmin })
+  if (error) throw error
+}
+
+/**
+ * Liste les fiches joueur (par player.id) dont le compte lié est déjà
+ * administrateur (RPC public.list_admin_player_ids) — sert à afficher le
+ * badge « Admin » sur la page Équipe. Réservé aux admins côté base.
+ */
+export async function fetchAdminPlayerIds() {
+  const { data, error } = await supabase.rpc('list_admin_player_ids')
+  if (error) throw error
+  return (data || []).map((row) => row.player_id)
+}
+
 // ---------- Disponibilités des joueurs ----------
 
 function rowToAvailability(row) {

@@ -173,6 +173,16 @@ tout, en lecture seule, sans avoir de compte. Pour cocher leurs propres
 disponibilités (page Disponibilités), ils se connectent eux aussi avec
 Discord — leur fiche joueur se crée automatiquement, comme la vôtre.
 
+**Pour rendre quelqu'un d'autre admin par la suite**, plus besoin de
+repasser par le SQL Editor : appliquez une fois `migration_018_promote_
+admin.sql` (même façon que l'étape 4 — SQL Editor > New query > coller >
+Run), puis sur la page **Équipe**, un bouton en forme d'étoile apparaît à
+côté de "Modifier"/"Supprimer" pour chaque joueur déjà connecté au moins
+une fois avec Discord. Cliquer dessus bascule son statut admin, sans
+toucher à Supabase. Ce bouton n'agit que sur les autres comptes : il est
+désactivé sur votre propre fiche, pour éviter de vous retirer par erreur
+votre seul accès admin.
+
 ---
 
 ## Étape 8 — Déployer sur GitHub Pages
