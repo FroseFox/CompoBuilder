@@ -8,6 +8,7 @@ import { useEscapeToClose } from '../../hooks/useEscapeToClose'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import PlayerAvatar from '../PlayerAvatar/PlayerAvatar'
 import discordMark from '../../assets/discord-mark.png'
+import { networkUrl } from '../../services/team'
 import './AuthPanel.css'
 
 /**
@@ -28,7 +29,7 @@ function DiscordMark({ size = 15 }) {
  * profil (fiche joueur + déconnexion), sans routing/page dédiée.
  */
 export default function AuthPanel() {
-  const { user, isAdmin, signInWithDiscord, signOut } = useAuth()
+  const { user, isAdmin, isCaptain, team, signInWithDiscord, signOut } = useAuth()
   const { players } = usePlayers()
   const { pushToast } = useToast()
   const [open, setOpen] = useState(false)
@@ -97,7 +98,7 @@ export default function AuthPanel() {
               <div className="auth-panel__popover-info">
                 <strong>{displayName}</strong>
                 <span className={`auth-panel__popover-status${isAdmin ? ' auth-panel__popover-status--admin' : ''}`}>
-                  {isAdmin ? '★ Administrateur' : '● Connecté via Discord'}
+                  {isCaptain ? '★ Capitaine' : isAdmin ? '★ Éditeur' : '● Joueur'}
                 </span>
               </div>
             </div>
@@ -110,14 +111,16 @@ export default function AuthPanel() {
                 </div>
               )
             ) : (
-              <p className="auth-panel__popover-hint">
-                Ton compte n'est encore relié à aucune fiche joueur — vois la page Disponibilités pour t'associer.
-              </p>
+              <p className="auth-panel__popover-hint">Ta fiche joueur arrive dans quelques secondes.</p>
             )}
 
+            {team && <p className="auth-panel__popover-hint">Équipe : <strong>{team.name}</strong></p>}
             <Link to="/disponibilites" className="btn btn-ghost auth-panel__popover-link" onClick={() => setOpen(false)}>
               Mes disponibilités
             </Link>
+            <a href={networkUrl('#/espace')} className="btn btn-ghost auth-panel__popover-link">
+              Espace équipe du réseau
+            </a>
             <button type="button" className="btn btn-ghost auth-panel__popover-link" onClick={handleSignOut}>
               Se déconnecter
             </button>

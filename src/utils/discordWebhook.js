@@ -5,7 +5,7 @@
 // webhooks Discord ne renvoient pas d'en-têtes CORS permissifs pour une
 // requête JSON envoyée depuis un site tiers, donc le navigateur bloque
 // l'appel avant même qu'il parte. On passe donc par une Edge Function
-// Supabase (supabase/functions/discord-notify), qui fait l'appel
+// Supabase (supabase/functions/cb-discord-notify), qui fait l'appel
 // serveur → serveur (non soumis à CORS) et vérifie côté serveur que
 // l'appelant est bien un admin avant d'envoyer quoi que ce soit.
 //
@@ -16,6 +16,7 @@
 // ============================================================
 
 import { supabase } from '../services/supabaseClient'
+import { getTeamId } from '../services/team'
 
 const BRAND_COLOR = 0xff4655
 const SUCCESS_COLOR = 0x3ddc97
@@ -35,8 +36,8 @@ const DANGER_COLOR = 0xff5f6d
  */
 export async function sendDiscordMessage(payload, { testUrl, wait } = {}) {
   try {
-    const { data, error } = await supabase.functions.invoke('discord-notify', {
-      body: { payload, testUrl, wait },
+    const { data, error } = await supabase.functions.invoke('cb-discord-notify', {
+      body: { teamId: getTeamId(), payload, testUrl, wait },
     })
     if (error) throw error
     return Boolean(data?.ok)
@@ -56,8 +57,8 @@ export async function sendDiscordMessage(payload, { testUrl, wait } = {}) {
  */
 export async function sendDiscordVoteMessage(payload) {
   try {
-    const { data, error } = await supabase.functions.invoke('discord-notify', {
-      body: { payload, wait: true },
+    const { data, error } = await supabase.functions.invoke('cb-discord-notify', {
+      body: { teamId: getTeamId(), payload, wait: true },
     })
     if (error) throw error
     if (!data?.ok || !data?.message?.id || !data?.message?.channel_id) return null
@@ -101,8 +102,8 @@ async function blobToBase64(blob) {
 export async function sendDiscordVoteImage({ blob, filename }) {
   try {
     const imageBase64 = await blobToBase64(blob)
-    const { data, error } = await supabase.functions.invoke('discord-notify', {
-      body: { imageBase64, imageFilename: filename, wait: true },
+    const { data, error } = await supabase.functions.invoke('cb-discord-notify', {
+      body: { teamId: getTeamId(), imageBase64, imageFilename: filename, wait: true },
     })
     if (error) throw error
     if (!data?.ok || !data?.message?.id || !data?.message?.channel_id) return null

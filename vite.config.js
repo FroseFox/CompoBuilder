@@ -18,7 +18,7 @@ function cspPlugin() {
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: https://*.valorant-api.com https://*.supabase.co",
+    "img-src 'self' data: blob: https://*.valorant-api.com https://*.supabase.co https://cdn.discordapp.com",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://valorant-api.com https://*.valorant-api.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -49,7 +49,7 @@ function pwaPlugin() {
     injectRegister: 'auto',
     includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
     manifest: {
-      name: 'Comp Builder — Compositions Valorant',
+      name: 'Comp Builder · PRIZM Competitive Network',
       short_name: 'Comp Builder',
       description: 'Créez et sauvegardez vos compositions de 5 agents Valorant, pour chaque map, et gérez votre équipe.',
       // Chemins relatifs : cohérent avec base: './' plus bas, fonctionne

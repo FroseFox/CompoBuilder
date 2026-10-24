@@ -88,14 +88,12 @@ function describeCell(key, days) {
 
 export default function Availability() {
   const { user, isAdmin, signInWithDiscord } = useAuth()
-  const { players, status: playersStatus, claimPlayer } = usePlayers()
+  const { players, status: playersStatus } = usePlayers()
   const { slots, status: availabilityStatus, toggleSlot } = useAvailability()
   const { matches } = useMatches()
 
   const [weekOffset, setWeekOffset] = useState(0)
   const [selectedPlayerId, setSelectedPlayerId] = useState(null)
-  const [claimSelection, setClaimSelection] = useState('')
-  const [claiming, setClaiming] = useState(false)
 
   const playerList = useMemo(
     () => Object.values(players).sort((a, b) => a.pseudo.localeCompare(b.pseudo)),
@@ -109,8 +107,6 @@ export default function Availability() {
     () => (user ? playerList.find((p) => p.userId === user.id) || null : null),
     [playerList, user]
   )
-
-  const unclaimedPlayers = useMemo(() => playerList.filter((p) => !p.userId), [playerList])
 
   const days = useMemo(() => getWeekDays(weekOffset), [weekOffset])
 
@@ -161,14 +157,6 @@ export default function Availability() {
     : myPlayer?.id ?? null
   const activePlayer = playerList.find((p) => p.id === activePlayerId) || null
 
-  const handleClaim = async () => {
-    if (!claimSelection) return
-    setClaiming(true)
-    const ok = await claimPlayer(claimSelection)
-    setClaiming(false)
-    if (ok) setClaimSelection('')
-  }
-
   const loading = playersStatus === 'loading' || availabilityStatus === 'loading'
 
   if (loading) {
@@ -203,9 +191,8 @@ export default function Availability() {
         <span className="eyebrow">Planning</span>
         <h1 className="availability-page__title">Disponibilités</h1>
         <p>
-          Connecte-toi avec Discord pour cocher tes disponibilités sur les vraies dates de la semaine
-          — les jours où un match est prévu sont signalés directement sur la grille. Pas besoin de
-          compte pour simplement la consulter.
+          Coche tes créneaux sur les vraies dates de la semaine : toute l'équipe voit la grille se mettre
+          à jour en direct, et les jours de match sont signalés.
         </p>
       </div>
 
@@ -223,36 +210,7 @@ export default function Availability() {
 
       {user && !isAdmin && !myPlayer && (
         <div className="availability-page__claim glass-panel cut-corner-sm">
-          <p>
-            Ton compte Discord n'est relié à aucune fiche joueur — ta fiche a normalement dû être créée
-            automatiquement ; c'est probablement un ancien profil créé avant le passage à la connexion
-            Discord. Choisis lequel est le tien ci-dessous pour t'y associer.
-          </p>
-          {unclaimedPlayers.length === 0 ? (
-            <p className="availability-page__claim-empty">
-              Tous les joueurs de l'effectif ont déjà un compte associé — demande à un admin de vérifier
-              ta fiche dans l'effectif.
-            </p>
-          ) : (
-            <div className="availability-page__claim-row">
-              <select value={claimSelection} onChange={(e) => setClaimSelection(e.target.value)}>
-                <option value="">Je suis…</option>
-                {unclaimedPlayers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.pseudo}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleClaim}
-                disabled={!claimSelection || claiming}
-              >
-                {claiming ? 'Association…' : 'Associer'}
-              </button>
-            </div>
-          )}
+          <p>Ta fiche joueur n'est pas encore là : elle se crée dès que tu fais partie de l'équipe sur le réseau.</p>
         </div>
       )}
 

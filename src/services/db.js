@@ -8,6 +8,7 @@
 // ============================================================
 
 import { supabase } from './supabaseClient'
+import { getTeamId } from './team'
 
 // ---------- Mappers ----------
 
@@ -40,31 +41,12 @@ function rowToPlayer(row) {
     // Compte connecté (voir public.claim_player / connexion Discord) —
     // null pour une fiche créée manuellement, jamais reliée à un compte.
     userId: row.user_id ?? null,
-    // Identifiant Discord stable posé par handle_new_user() à la
-    // connexion — null pour une fiche créée manuellement par un admin.
-    discordId: row.discord_id ?? null,
+    // Fiche reliée à un membre de l'équipe sur le réseau (connexion
+    // Discord) : sert au badge Discord et à savoir si la fiche peut être
+    // supprimée ici (non : on retire un membre depuis « Mon équipe »).
+    discordId: row.user_id ?? null,
     createdAt: new Date(row.created_at).getTime(),
   }
-}
-
-// ---------- Maps & agents (données de référence, synchronisées depuis valorant-api.com) ----------
-
-export async function fetchMapsTable() {
-  const { data, error } = await supabase.from('maps').select('uuid, name')
-  if (error) throw error
-  return data
-}
-
-export async function upsertMaps(maps) {
-  const rows = maps.map((m) => ({ uuid: m.uuid, name: m.name }))
-  const { error } = await supabase.from('maps').upsert(rows, { onConflict: 'uuid' })
-  if (error) throw error
-}
-
-export async function upsertAgents(agents) {
-  const rows = agents.map((a) => ({ uuid: a.uuid, name: a.name, role: a.role.name }))
-  const { error } = await supabase.from('agents').upsert(rows, { onConflict: 'uuid' })
-  if (error) throw error
 }
 
 /** Une manche (une map jouée) au sein d'un match — voir match_maps en base. */
@@ -110,15 +92,15 @@ function rowToMatch(row) {
 // ---------- Players ----------
 
 export async function fetchPlayers() {
-  const { data, error } = await supabase.from('players').select('*')
+  const { data, error } = await supabase.from('cb_players').select('*').eq('team_id', getTeamId())
   if (error) throw error
   return data.map(rowToPlayer)
 }
 
 export async function insertPlayer({ pseudo, primaryRole, secondaryRole, color }) {
   const { data, error } = await supabase
-    .from('players')
-    .insert({ pseudo, primary_role: primaryRole, secondary_role: secondaryRole, color })
+    .from('cb_players')
+    .insert({ team_id: getTeamId(), pseudo, primary_role: primaryRole, secondary_role: secondaryRole, color })
     .select()
     .single()
   if (error) throw error
@@ -127,7 +109,7 @@ export async function insertPlayer({ pseudo, primaryRole, secondaryRole, color }
 
 export async function updatePlayerRow(id, { pseudo, primaryRole, secondaryRole, color }) {
   const { data, error } = await supabase
-    .from('players')
+    .from('cb_players')
     .update({ pseudo, primary_role: primaryRole, secondary_role: secondaryRole, color })
     .eq('id', id)
     .select()
@@ -137,55 +119,34 @@ export async function updatePlayerRow(id, { pseudo, primaryRole, secondaryRole, 
 }
 
 export async function deletePlayerRow(id) {
-  const { error } = await supabase.from('players').delete().eq('id', id)
+  const { error } = await supabase.from('cb_players').delete().eq('id', id)
   if (error) throw error
 }
 
 /**
- * Associe le compte actuellement connecté à cette fiche joueur (RPC
- * public.claim_player — voir supabase/schema.sql pour la vérification
- * côté base : impossible d'associer quelqu'un d'autre que soi-même, ni
- * une fiche déjà associée).
+ * Donne (ou retire) à un membre le droit de modifier le Comp Builder de
+ * l'équipe. Réservé au capitaine (vérifié par la base, cb_set_editor).
  */
-export async function claimPlayerRow(playerId) {
-  const { data, error } = await supabase.rpc('claim_player', { target_player_id: playerId })
-  if (error) throw error
-  return rowToPlayer(data)
-}
-
-/**
- * Retire un joueur de l'effectif ET bannit son discord_id (RPC
- * public.ban_and_remove_player — voir supabase/schema.sql) : contrairement
- * à deletePlayerRow, empêche cette personne de réapparaître automatiquement
- * à sa prochaine connexion Discord. Sans effet de bannissement pour une
- * fiche sans discord_id (créée manuellement) — équivaut alors à un simple
- * delete côté base.
- */
-export async function banAndRemovePlayerRow(playerId) {
-  const { error } = await supabase.rpc('ban_and_remove_player', { target_player_id: playerId })
+export async function setPlayerAdminRow(userId, makeAdmin) {
+  const { error } = await supabase.rpc('cb_set_editor', { p_user: userId, p_on: makeAdmin })
   if (error) throw error
 }
 
 /**
- * Bascule le droit administrateur d'un joueur déjà relié à un compte
- * (RPC public.set_player_admin — voir supabase/schema.sql). Échoue si la
- * fiche n'a pas de userId (jamais connectée avec Discord) ou si l'appelant
- * n'est pas lui-même admin.
+ * Qui peut modifier : le capitaine + les membres « éditeurs ».
+ * Renvoie { captainId, editorUserIds: Set<userId> }.
  */
-export async function setPlayerAdminRow(playerId, makeAdmin) {
-  const { error } = await supabase.rpc('set_player_admin', { target_player_id: playerId, make_admin: makeAdmin })
-  if (error) throw error
-}
-
-/**
- * Liste les fiches joueur (par player.id) dont le compte lié est déjà
- * administrateur (RPC public.list_admin_player_ids) — sert à afficher le
- * badge « Admin » sur la page Équipe. Réservé aux admins côté base.
- */
-export async function fetchAdminPlayerIds() {
-  const { data, error } = await supabase.rpc('list_admin_player_ids')
-  if (error) throw error
-  return (data || []).map((row) => row.player_id)
+export async function fetchTeamAccess() {
+  const teamId = getTeamId()
+  const [{ data: team, error: e1 }, { data: members, error: e2 }] = await Promise.all([
+    supabase.from('teams').select('captain_id').eq('id', teamId).maybeSingle(),
+    supabase.from('team_members').select('user_id, cb_editor').eq('team_id', teamId),
+  ])
+  if (e1) throw e1
+  if (e2) throw e2
+  const editorUserIds = new Set((members || []).filter((m) => m.cb_editor).map((m) => m.user_id))
+  if (team?.captain_id) editorUserIds.add(team.captain_id)
+  return { captainId: team?.captain_id || null, editorUserIds }
 }
 
 // ---------- Disponibilités des joueurs ----------
@@ -200,15 +161,15 @@ function rowToAvailability(row) {
 }
 
 export async function fetchAvailability() {
-  const { data, error } = await supabase.from('player_availability').select('*')
+  const { data, error } = await supabase.from('cb_availability').select('id, player_id, date, period').eq('team_id', getTeamId())
   if (error) throw error
   return data.map(rowToAvailability)
 }
 
 export async function addAvailabilitySlot(playerId, date, period) {
   const { data, error } = await supabase
-    .from('player_availability')
-    .insert({ player_id: playerId, date, period })
+    .from('cb_availability')
+    .insert({ team_id: getTeamId(), player_id: playerId, date, period })
     .select()
     .single()
   if (error) throw error
@@ -217,7 +178,7 @@ export async function addAvailabilitySlot(playerId, date, period) {
 
 export async function removeAvailabilitySlot(playerId, date, period) {
   const { error } = await supabase
-    .from('player_availability')
+    .from('cb_availability')
     .delete()
     .eq('player_id', playerId)
     .eq('date', date)
@@ -228,15 +189,16 @@ export async function removeAvailabilitySlot(playerId, date, period) {
 // ---------- Compositions ----------
 
 export async function fetchCompositions() {
-  const { data, error } = await supabase.from('compositions').select('*')
+  const { data, error } = await supabase.from('cb_compositions').select('*').eq('team_id', getTeamId())
   if (error) throw error
   return data.map(rowToComposition)
 }
 
 export async function insertComposition(mapUuid, draft) {
   const { data, error } = await supabase
-    .from('compositions')
+    .from('cb_compositions')
     .insert({
+      team_id: getTeamId(),
       map_uuid: mapUuid,
       name: draft.name,
       slots: draft.slots,
@@ -262,7 +224,7 @@ export async function updateCompositionRow(id, patch) {
   if ('voteChannelId' in patch) dbPatch.vote_channel_id = patch.voteChannelId
 
   const { data, error } = await supabase
-    .from('compositions')
+    .from('cb_compositions')
     .update(dbPatch)
     .eq('id', id)
     .select()
@@ -272,14 +234,13 @@ export async function updateCompositionRow(id, patch) {
 }
 
 export async function deleteCompositionRow(id) {
-  const { error } = await supabase.from('compositions').delete().eq('id', id)
+  const { error } = await supabase.from('cb_compositions').delete().eq('id', id)
   if (error) throw error
 }
 
 /** Supprime toutes les compositions (bouton "Réinitialiser tout", admin uniquement). */
 export async function deleteAllCompositions() {
-  // neq sur une colonne toujours vraie : supprime toutes les lignes.
-  const { error } = await supabase.from('compositions').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  const { error } = await supabase.from('cb_compositions').delete().eq('team_id', getTeamId())
   if (error) throw error
 }
 
@@ -293,13 +254,13 @@ export async function deleteAllCompositions() {
 // que diffé manche par manche, plus simple et le formulaire renvoie de
 // toute façon l'état complet à chaque sauvegarde.
 
-const MATCH_SELECT = '*, match_maps(*)'
+const MATCH_SELECT = '*, match_maps:cb_match_maps(*)'
 
 export async function fetchMatches() {
   const { data, error } = await supabase
-    .from('matches')
+    .from('cb_matches')
     .select(MATCH_SELECT)
-    .order('position', { foreignTable: 'match_maps' })
+    .eq('team_id', getTeamId())
   if (error) throw error
   return data.map(rowToMatch)
 }
@@ -308,10 +269,9 @@ export async function fetchMatches() {
  * écriture (insert/update) et pour resynchroniser le temps réel. */
 export async function fetchMatchWithMaps(id) {
   const { data, error } = await supabase
-    .from('matches')
+    .from('cb_matches')
     .select(MATCH_SELECT)
     .eq('id', id)
-    .order('position', { foreignTable: 'match_maps' })
     .single()
   if (error) throw error
   return rowToMatch(data)
@@ -319,11 +279,13 @@ export async function fetchMatchWithMaps(id) {
 
 /** Remplace toutes les manches d'un match par `mapsDraft` (delete + insert en bloc). */
 async function replaceMatchMaps(matchId, mapsDraft) {
-  const { error: delError } = await supabase.from('match_maps').delete().eq('match_id', matchId)
+  const { error: delError } = await supabase.from('cb_match_maps').delete().eq('match_id', matchId)
   if (delError) throw delError
   if (!mapsDraft || mapsDraft.length === 0) return
 
+  const teamId = getTeamId()
   const rows = mapsDraft.map((m, index) => ({
+    team_id: teamId,
     match_id: matchId,
     position: index,
     map_uuid: m.mapUuid || null,
@@ -331,14 +293,15 @@ async function replaceMatchMaps(matchId, mapsDraft) {
     our_score: m.ourScore === '' || m.ourScore === undefined ? null : m.ourScore,
     opponent_score: m.opponentScore === '' || m.opponentScore === undefined ? null : m.opponentScore,
   }))
-  const { error } = await supabase.from('match_maps').insert(rows)
+  const { error } = await supabase.from('cb_match_maps').insert(rows)
   if (error) throw error
 }
 
 export async function insertMatch(draft, mapsDraft = []) {
   const { data, error } = await supabase
-    .from('matches')
+    .from('cb_matches')
     .insert({
+      team_id: getTeamId(),
       opponent_name: draft.opponentName || null,
       type: draft.matchType || 'match',
       format: draft.format || 'bo1',
@@ -359,17 +322,9 @@ export async function updateMatchRow(id, patch, mapsDraft) {
   if ('opponentName' in patch) dbPatch.opponent_name = patch.opponentName || null
   if ('matchType' in patch) dbPatch.type = patch.matchType
   if ('format' in patch) dbPatch.format = patch.format
-  // Reprogrammer (nouvelle date et/ou heure) doit pouvoir redéclencher un
-  // rappel Discord : sans ça, un match reporté après l'envoi d'un premier
-  // rappel n'en recevrait jamais d'autre (voir send_match_reminders()).
-  if ('matchDate' in patch) {
-    dbPatch.match_date = patch.matchDate
-    dbPatch.reminder_sent_at = null
-  }
-  if ('matchTime' in patch) {
-    dbPatch.match_time = patch.matchTime
-    dbPatch.reminder_sent_at = null
-  }
+  // Reprogrammer relance le rappel Discord (géré par la base : cb_reset_reminder).
+  if ('matchDate' in patch) dbPatch.match_date = patch.matchDate
+  if ('matchTime' in patch) dbPatch.match_time = patch.matchTime
   if ('notes' in patch) dbPatch.notes = patch.notes
   if ('vodUrl' in patch) dbPatch.vod_url = patch.vodUrl
   if ('presenceMessageId' in patch) dbPatch.presence_message_id = patch.presenceMessageId
@@ -378,7 +333,7 @@ export async function updateMatchRow(id, patch, mapsDraft) {
   if ('presenceNo' in patch) dbPatch.presence_no = patch.presenceNo
   if ('presenceSyncedAt' in patch) dbPatch.presence_synced_at = patch.presenceSyncedAt
 
-  const { error } = await supabase.from('matches').update(dbPatch).eq('id', id)
+  const { error } = await supabase.from('cb_matches').update(dbPatch).eq('id', id)
   if (error) throw error
   // mapsDraft absent (undefined) = les manches ne changent pas pour cet
   // appel (ex. un simple renommage) ; un tableau, même vide, remplace.
@@ -388,14 +343,13 @@ export async function updateMatchRow(id, patch, mapsDraft) {
 
 export async function deleteMatchRow(id) {
   // match_maps se supprime en cascade (on delete cascade en base).
-  const { error } = await supabase.from('matches').delete().eq('id', id)
+  const { error } = await supabase.from('cb_matches').delete().eq('id', id)
   if (error) throw error
 }
 
 // ---------- Réglages d'équipe (webhook Discord) ----------
-// Table à une seule ligne (id = true). Lecture/écriture réservées aux
-// admins par les policies RLS : un visiteur non-admin reçoit ici une
-// ligne vide (rejetée par RLS), pas une erreur.
+// Une ligne par équipe. Lisible et modifiable seulement par le capitaine
+// et les éditeurs (l'URL d'un webhook doit rester secrète).
 
 function rowToTeamSettings(row) {
   return { discordWebhookUrl: row?.discord_webhook_url || '' }
@@ -403,22 +357,20 @@ function rowToTeamSettings(row) {
 
 export async function fetchTeamSettings() {
   const { data, error } = await supabase
-    .from('team_settings')
+    .from('cb_settings')
     .select('discord_webhook_url')
-    .eq('id', true)
+    .eq('team_id', getTeamId())
     .maybeSingle()
   if (error) throw error
   return rowToTeamSettings(data)
 }
 
 export async function updateTeamSettingsRow(patch) {
-  const dbPatch = {}
-  if ('discordWebhookUrl' in patch) dbPatch.discord_webhook_url = patch.discordWebhookUrl || null
-
+  const row = { team_id: getTeamId() }
+  if ('discordWebhookUrl' in patch) row.discord_webhook_url = patch.discordWebhookUrl || null
   const { data, error } = await supabase
-    .from('team_settings')
-    .update(dbPatch)
-    .eq('id', true)
+    .from('cb_settings')
+    .upsert(row, { onConflict: 'team_id' })
     .select('discord_webhook_url')
     .single()
   if (error) throw error

@@ -3,7 +3,7 @@ import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-d
 import { AnimatePresence, MotionConfig } from 'framer-motion'
 import { ThemeProvider } from './context/ThemeContext'
 import { SoundProvider } from './context/SoundContext'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { SettingsProvider } from './context/SettingsContext'
 import { DataProvider } from './context/DataContext'
 import { CompositionsProvider } from './context/CompositionsContext'
@@ -11,13 +11,13 @@ import { PlayersProvider } from './context/PlayersContext'
 import { MatchesProvider } from './context/MatchesContext'
 import { AvailabilityProvider } from './context/AvailabilityContext'
 import { ToastProvider } from './context/ToastContext'
-import { useGameDataSync } from './hooks/useGameDataSync'
 import { isSupabaseConfigured } from './services/supabaseClient'
 import Navbar from './components/Navbar/Navbar'
 import RouteProgress from './components/RouteProgress/RouteProgress'
 import PageTransition from './components/PageTransition/PageTransition'
 import Loader from './components/Loader/Loader'
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
+import TeamGate from './components/TeamGate/TeamGate'
 
 // Chaque page dans son propre chunk : le premier chargement ne télécharge
 // que la page demandée, pas les 6 à la fois (le bundle faisait ~590 Ko
@@ -64,8 +64,6 @@ function AppRoutes() {
 
 /** Rendu à l'intérieur de tous les providers, pour pouvoir utiliser leurs hooks. */
 function AppShell() {
-  useGameDataSync()
-
   return (
     <HashRouter>
       {/* reducedMotion="user" : respecte automatiquement le réglage système
@@ -107,6 +105,29 @@ function SupabaseSetupNotice() {
   )
 }
 
+/**
+ * Données de l'équipe : tout est rechargé de zéro si la personne change
+ * d'équipe (key = id de l'équipe).
+ */
+function TeamScopedApp() {
+  const { team } = useAuth()
+  return (
+    <SettingsProvider key={team.id}>
+      <DataProvider>
+        <PlayersProvider>
+          <AvailabilityProvider>
+            <CompositionsProvider>
+              <MatchesProvider>
+                <AppShell />
+              </MatchesProvider>
+            </CompositionsProvider>
+          </AvailabilityProvider>
+        </PlayersProvider>
+      </DataProvider>
+    </SettingsProvider>
+  )
+}
+
 export default function App() {
   if (!isSupabaseConfigured) {
     return <SupabaseSetupNotice />
@@ -118,19 +139,9 @@ export default function App() {
         <SoundProvider>
           <ToastProvider>
             <AuthProvider>
-              <SettingsProvider>
-                <DataProvider>
-                  <PlayersProvider>
-                    <AvailabilityProvider>
-                      <CompositionsProvider>
-                        <MatchesProvider>
-                          <AppShell />
-                        </MatchesProvider>
-                      </CompositionsProvider>
-                    </AvailabilityProvider>
-                  </PlayersProvider>
-                </DataProvider>
-              </SettingsProvider>
+              <TeamGate>
+                <TeamScopedApp />
+              </TeamGate>
             </AuthProvider>
           </ToastProvider>
         </SoundProvider>

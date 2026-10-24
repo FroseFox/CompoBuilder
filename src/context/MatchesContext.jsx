@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { supabase } from '../services/supabaseClient'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useLiveSync } from '../hooks/useLiveSync'
 import { deleteMatchRow, fetchMatches, fetchMatchWithMaps, insertMatch, updateMatchRow } from '../services/db'
 import { useToast } from './ToastContext'
 
@@ -23,25 +23,22 @@ export function MatchesProvider({ children }) {
     })
   }, [])
 
-  // Chargement initial depuis Supabase.
-  useEffect(() => {
-    let cancelled = false
-    fetchMatches()
-      .then((list) => {
-        if (cancelled) return
-        const byId = {}
-        list.forEach((m) => (byId[m.id] = m))
-        setMatches(byId)
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error(err)
-        if (!cancelled) setStatus('error')
-      })
-    return () => {
-      cancelled = true
+  const load = useCallback(async () => {
+    try {
+      const list = await fetchMatches()
+      const byId = {}
+      list.forEach((m) => (byId[m.id] = m))
+      setMatches(byId)
+      setStatus('ready')
+    } catch (err) {
+      console.error(err)
+      setStatus((s) => (s === 'ready' ? s : 'error'))
     }
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   // Recharge un match précis (avec ses manches) suite à un évènement
   // temps réel — un payload postgres_changes ne contient que les
@@ -62,29 +59,39 @@ export function MatchesProvider({ children }) {
     [mergeMatch]
   )
 
-  // Synchronisation temps réel entre tous les membres connectés.
+  // Synchronisation temps réel entre tous les membres de l'équipe.
+  // Suppression d'une manche : seul son id arrive ; on retrouve son match
+  // dans l'état local pour le recharger.
+  const matchesRef = useRef(matches)
   useEffect(() => {
-    const channel = supabase
-      .channel('matches-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, (p) => refreshMatch(p.new.id))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, (p) => refreshMatch(p.new.id))
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'matches' }, (p) => removeMatchFromState(p.old.id))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'match_maps' }, (p) => refreshMatch(p.new.match_id))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'match_maps' }, (p) => refreshMatch(p.new.match_id))
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'match_maps' }, (p) => refreshMatch(p.old.match_id))
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [refreshMatch, removeMatchFromState])
+    matchesRef.current = matches
+  }, [matches])
+  useLiveSync(
+    'matches',
+    [
+      {
+        table: 'cb_matches',
+        onUpsert: (p) => refreshMatch(p.new.id),
+        onDelete: (p) => removeMatchFromState(p.old.id),
+      },
+      {
+        table: 'cb_match_maps',
+        onUpsert: (p) => refreshMatch(p.new.match_id),
+        onDelete: (p) => {
+          const owner = Object.values(matchesRef.current).find((m) => m.maps.some((mm) => mm.id === p.old.id))
+          if (owner) refreshMatch(owner.id)
+        },
+      },
+    ],
+    load
+  )
 
   const handleError = useCallback(
     (err, fallbackMessage) => {
       console.error(err)
       const message =
         err?.code === '42501' || /row-level security/i.test(err?.message || '')
-          ? "Action refusée : vous devez être connecté en tant qu'administrateur."
+          ? "Action refusée : seuls le capitaine et les éditeurs de l'équipe peuvent modifier."
           : fallbackMessage
       pushToast(message, 'error')
     },

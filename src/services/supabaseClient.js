@@ -1,26 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Même base que le site du PRIZM Competitive Network : la connexion
+// Discord est partagée (on se connecte une fois, sur le site ou ici).
+// Ces deux valeurs sont publiques par nature (elles finissent dans le
+// JavaScript envoyé au navigateur) ; la sécurité repose sur les règles
+// RLS de la base. Le .env reste prioritaire pour un test en local.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://cbbnrdfvaaikawszaysu.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_rfB8KSptjcdTpp8QxvST9A_UlpQ8rW0'
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // Message volontairement explicite : c'est l'erreur n°1 des débutants
-  // (fichier .env manquant ou mal nommé). Voir le README, section Supabase.
-  console.error(
-    "Configuration Supabase manquante. Vérifiez que le fichier .env contient " +
-      'VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY, puis relancez `npm run dev`.'
-  )
-}
-
-// flowType: 'pkce' — la connexion Discord (OAuth) renvoie normalement le
-// jeton dans le FRAGMENT d'URL (#access_token=...), qui rentrerait en
-// collision avec le routing du site (HashRouter, lui-même basé sur le
-// fragment : #/team, #/dispos...). Le flux PKCE renvoie plutôt un code
-// dans la QUERY STRING (?code=...), qui ne touche pas au fragment : les
-// deux mécanismes cohabitent sans se marcher dessus.
+// flowType 'pkce' : la connexion Discord renvoie un ?code=… dans l'URL
+// plutôt qu'un #access_token=…, qui entrerait en collision avec le
+// routage par # (HashRouter ici, routes #/… sur le site du réseau).
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: { flowType: 'pkce' },
+  auth: { flowType: 'pkce', persistSession: true, detectSessionInUrl: true },
+  // Peu de messages temps réel par seconde suffisent largement ici
+  realtime: { params: { eventsPerSecond: 5 } },
 })
 
-/** true si les variables d'environnement Supabase sont présentes. */
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)

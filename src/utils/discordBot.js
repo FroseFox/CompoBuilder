@@ -1,6 +1,6 @@
 // ============================================================
 // Actions Discord qui passent par le BOT plutôt que par le webhook
-// (voir supabase/functions/discord-bot) : ajouter les réactions ✅/❌
+// (voir supabase/functions/cb-discord-bot) : ajouter les réactions ✅/❌
 // à un message de vote, puis compter qui a réagi.
 //
 // Toujours "best effort" côté appelant : un échec ici (bot non
@@ -12,6 +12,7 @@
 // ============================================================
 
 import { supabase } from '../services/supabaseClient'
+import { getTeamId } from '../services/team'
 
 // La fonction discord-bot répond toujours avec un corps JSON { error }
 // explicite (bot non configuré, Discord a refusé la requête, etc.),
@@ -41,8 +42,8 @@ async function extractFunctionError(err) {
  */
 export async function addVoteReactions({ channelId, messageId }) {
   try {
-    const { data, error } = await supabase.functions.invoke('discord-bot', {
-      body: { action: 'addReactions', channelId, messageId },
+    const { data, error } = await supabase.functions.invoke('cb-discord-bot', {
+      body: { teamId: getTeamId(), action: 'addReactions', channelId, messageId },
     })
     if (error) throw error
     return { ok: Boolean(data?.ok), error: data?.ok ? null : data?.error || null }
@@ -59,8 +60,8 @@ export async function addVoteReactions({ channelId, messageId }) {
  */
 export async function getVoteCounts({ channelId, messageId }) {
   try {
-    const { data, error } = await supabase.functions.invoke('discord-bot', {
-      body: { action: 'getReactionCounts', channelId, messageId },
+    const { data, error } = await supabase.functions.invoke('cb-discord-bot', {
+      body: { teamId: getTeamId(), action: 'getReactionCounts', channelId, messageId },
     })
     if (error) throw error
     if (!data?.ok || !data?.counts) return { counts: null, error: data?.error || 'Réponse inattendue du bot Discord.' }

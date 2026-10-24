@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { supabase } from '../services/supabaseClient'
+import { useLiveSync } from '../hooks/useLiveSync'
 import {
   deleteAllCompositions,
   deleteCompositionRow,
@@ -35,62 +35,54 @@ export function CompositionsProvider({ children }) {
     }))
   }, [])
 
+  // mapUuid peut manquer (suppression reçue en temps réel : seul l'id est
+  // fourni) : on cherche alors la compo dans toutes les maps.
   const removeCompFromState = useCallback((mapUuid, compId) => {
     setCompositionsByMap((prev) => {
-      const bucket = prev[mapUuid]
-      if (!bucket) return prev
+      if (!mapUuid) mapUuid = Object.keys(prev).find((m) => prev[m]?.[compId])
+      const bucket = mapUuid && prev[mapUuid]
+      if (!bucket || !bucket[compId]) return prev
       const rest = { ...bucket }
       delete rest[compId]
       return { ...prev, [mapUuid]: rest }
     })
   }, [])
 
-  // Chargement initial depuis Supabase.
-  useEffect(() => {
-    let cancelled = false
-    fetchCompositions()
-      .then((list) => {
-        if (cancelled) return
-        setCompositionsByMap(groupByMap(list))
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error(err)
-        if (!cancelled) setStatus('error')
-      })
-    return () => {
-      cancelled = true
+  // Chargement (au démarrage, et pour rattraper après une coupure).
+  const load = useCallback(async () => {
+    try {
+      const list = await fetchCompositions()
+      setCompositionsByMap(groupByMap(list))
+      setStatus('ready')
+    } catch (err) {
+      console.error(err)
+      setStatus((s) => (s === 'ready' ? s : 'error'))
     }
   }, [])
 
-  // Synchronisation temps réel : toute modification faite par un autre
-  // membre de l'équipe (ou un autre onglet) met à jour l'état localement,
-  // sans recharger la page.
   useEffect(() => {
-    const channel = supabase
-      .channel('compositions-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'compositions' }, (payload) => {
-        mergeComp(rowToComposition(payload.new))
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'compositions' }, (payload) => {
-        mergeComp(rowToComposition(payload.new))
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'compositions' }, (payload) => {
-        removeCompFromState(payload.old.map_uuid, payload.old.id)
-      })
-      .subscribe()
+    load()
+  }, [load])
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [mergeComp, removeCompFromState])
+  // Temps réel : les modifs d'un coéquipier apparaissent sans recharger.
+  useLiveSync(
+    'compositions',
+    [
+      {
+        table: 'cb_compositions',
+        onUpsert: (payload) => mergeComp(rowToComposition(payload.new)),
+        onDelete: (payload) => removeCompFromState(null, payload.old.id),
+      },
+    ],
+    load
+  )
 
   const handleError = useCallback(
     (err, fallbackMessage) => {
       console.error(err)
       const message =
         err?.code === '42501' || /row-level security/i.test(err?.message || '')
-          ? "Action refusée : vous devez être connecté en tant qu'administrateur."
+          ? "Action refusée : seuls le capitaine et les éditeurs de l'équipe peuvent modifier."
           : fallbackMessage
       pushToast(message, 'error')
     },

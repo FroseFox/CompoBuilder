@@ -263,7 +263,7 @@ export default function Editor() {
       {!composition && (
         <div className="container editor__content">
           <div className="editor__section glass-panel editor__waiting">
-            <p>Aucune composition n'a encore été créée pour cette map. Un administrateur doit s'y connecter pour en créer une.</p>
+            <p>Aucune composition n'a encore été créée pour cette map. Le capitaine ou un éditeur de l'équipe peut en créer une.</p>
           </div>
         </div>
       )}

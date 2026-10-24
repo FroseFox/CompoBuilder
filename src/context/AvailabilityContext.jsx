@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { supabase } from '../services/supabaseClient'
+import { useLiveSync } from '../hooks/useLiveSync'
 import {
   addAvailabilitySlot,
   fetchAvailability,
@@ -10,11 +10,8 @@ import { useToast } from './ToastContext'
 
 const AvailabilityContext = createContext(null)
 
-// Rappel : contrairement aux autres tables, l'écriture sur
-// `player_availability` n'est réservée ni à tout le monde ni aux seuls
-// admins : chaque compte ne peut modifier que la ligne du joueur auquel
-// il est associé (voir claimPlayer dans PlayersContext), plus les admins
-// qui gardent la main. handleError traduit un refus RLS en conséquence.
+// Rappel : chaque joueur ne peut cocher que ses propres créneaux (sa fiche
+// est reliée à son compte), le capitaine et les éditeurs peuvent dépanner.
 
 export function AvailabilityProvider({ children }) {
   const { pushToast } = useToast()
@@ -38,43 +35,36 @@ export function AvailabilityProvider({ children }) {
     })
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
-    fetchAvailability()
-      .then((list) => {
-        if (cancelled) return
-        const byId = {}
-        list.forEach((slot) => (byId[slot.id] = slot))
-        setSlots(byId)
-        setStatus('ready')
-      })
-      .catch((err) => {
-        console.error(err)
-        if (!cancelled) setStatus('error')
-      })
-    return () => {
-      cancelled = true
+  const load = useCallback(async () => {
+    try {
+      const list = await fetchAvailability()
+      const byId = {}
+      list.forEach((slot) => (byId[slot.id] = slot))
+      setSlots(byId)
+      setStatus('ready')
+    } catch (err) {
+      console.error(err)
+      setStatus((s) => (s === 'ready' ? s : 'error'))
     }
   }, [])
 
-  // Synchronisation temps réel : quand un joueur coche/décoche un
-  // créneau depuis un autre onglet ou un autre appareil, tout le monde
-  // voit la grille se mettre à jour instantanément.
   useEffect(() => {
-    const channel = supabase
-      .channel('player-availability-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'player_availability' }, (payload) => {
-        mergeSlot(rowToAvailability(payload.new))
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'player_availability' }, (payload) => {
-        removeSlotFromState(payload.old.id)
-      })
-      .subscribe()
+    load()
+  }, [load])
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [mergeSlot, removeSlotFromState])
+  // Temps réel : quand un joueur coche ou décoche un créneau, toute
+  // l'équipe voit la grille bouger instantanément.
+  useLiveSync(
+    'availability',
+    [
+      {
+        table: 'cb_availability',
+        onUpsert: (payload) => mergeSlot(rowToAvailability(payload.new)),
+        onDelete: (payload) => removeSlotFromState(payload.old.id),
+      },
+    ],
+    load
+  )
 
   const handleError = useCallback(
     (err, fallbackMessage) => {

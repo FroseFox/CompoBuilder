@@ -49,3 +49,24 @@
     justify-content: flex-end;
   }
 }
+
+.team-settings__import {
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.team-settings__import summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.team-settings__import[open] summary {
+  margin-bottom: 8px;
+}
+
+.team-settings__import .btn {
+  margin-top: 8px;
+}
+.team-settings__import .team-settings__help { margin-top: 0; }

@@ -14,6 +14,7 @@ import GlobalSearch from '../GlobalSearch/GlobalSearch'
 import AuthPanel from '../AuthPanel/AuthPanel'
 import TeamSettingsModal from '../TeamSettingsModal/TeamSettingsModal'
 import InstallAppButton from '../InstallAppButton/InstallAppButton'
+import { networkUrl } from '../../services/team'
 import './Navbar.css'
 
 // Onglets du quotidien, toujours visibles. Les autres (consultés plus
@@ -38,7 +39,7 @@ const MORE_NAV_ITEMS = [
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme()
   const { enabled: soundEnabled, toggleSound } = useSound()
-  const { isAdmin } = useAuth()
+  const { isAdmin, team } = useAuth()
   const { resetAll } = useCompositions()
   const { pushToast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -77,6 +78,12 @@ export default function Navbar() {
             <span className="topnav__title">
               COMP<span className="topnav__title-accent">BUILDER</span>
             </span>
+            {team && (
+              <span className="topnav__team" title={team.name}>
+                {team.logo_url ? <img src={team.logo_url} alt="" width="18" height="18" /> : null}
+                {team.tag}
+              </span>
+            )}
           </Link>
 
           <nav className={`topnav__links ${mobileMenuOpen ? 'topnav__links--open' : ''}`}>
@@ -109,6 +116,9 @@ export default function Navbar() {
             <NavMoreMenu onNavigate={() => setMobileMenuOpen(false)} />
 
             <div className="topnav__mobile-actions">
+              <a className="btn btn-ghost" href={networkUrl('#/espace')}>
+                ← Espace équipe du réseau
+              </a>
               <button className="btn btn-ghost" onClick={toggleSound}>
                 {soundEnabled ? 'Couper le son' : 'Activer le son'}
               </button>
@@ -175,6 +185,17 @@ export default function Navbar() {
             </button>
 
             <InstallAppButton variant="icon" />
+
+            <a
+              className="btn btn-ghost topnav__network"
+              href={networkUrl('#/espace')}
+              title="Retour à l'espace équipe du PRIZM Competitive Network"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>Réseau</span>
+            </a>
 
             {isAdmin && (
               <button

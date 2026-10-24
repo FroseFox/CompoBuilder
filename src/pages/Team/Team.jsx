@@ -5,7 +5,8 @@ import { useCompositions } from '../../context/CompositionsContext'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { PLAYER_COLORS, FLEX_ROLE } from '../../utils/storage'
-import { fetchAdminPlayerIds, setPlayerAdminRow } from '../../services/db'
+import { fetchTeamAccess, setPlayerAdminRow } from '../../services/db'
+import { networkUrl } from '../../services/team'
 import PlayerAvatar from '../../components/PlayerAvatar/PlayerAvatar'
 import RoleBadge from '../../components/RoleBadge/RoleBadge'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
@@ -28,9 +29,9 @@ const ROLE_ACCENT = {
 
 export default function Team() {
   const { agents } = useData()
-  const { players, addPlayer, updatePlayer, deletePlayer, banAndRemovePlayer } = usePlayers()
+  const { players, addPlayer, updatePlayer, deletePlayer } = usePlayers()
   const { unassignPlayerEverywhere } = useCompositions()
-  const { isAdmin, user } = useAuth()
+  const { isAdmin, isCaptain, user, team } = useAuth()
   const { pushToast } = useToast()
 
   const [formOpen, setFormOpen] = useState(false)
@@ -40,43 +41,42 @@ export default function Team() {
 
   const [roleFilter, setRoleFilter] = useState('all')
 
-  // Qui est déjà admin — uniquement consultable (et modifiable) par un
-  // admin lui-même, voir list_admin_player_ids() côté base.
-  const [adminPlayerIds, setAdminPlayerIds] = useState(() => new Set())
+  // Qui peut modifier : le capitaine + les éditeurs qu'il a nommés.
+  // (Liste visible par toute l'équipe ; seul le capitaine la change.)
+  const [editorUserIds, setEditorUserIds] = useState(() => new Set())
+  const [captainId, setCaptainId] = useState(null)
 
   useEffect(() => {
-    if (!isAdmin) {
-      setAdminPlayerIds(new Set())
-      return undefined
-    }
     let cancelled = false
-    fetchAdminPlayerIds()
-      .then((ids) => {
-        if (!cancelled) setAdminPlayerIds(new Set(ids))
+    fetchTeamAccess()
+      .then(({ captainId: cap, editorUserIds: ids }) => {
+        if (cancelled) return
+        setCaptainId(cap)
+        setEditorUserIds(ids)
       })
       .catch((err) => console.error(err))
     return () => {
       cancelled = true
     }
-  }, [isAdmin])
+  }, [team])
 
   const handleToggleAdmin = async (player) => {
-    const makeAdmin = !adminPlayerIds.has(player.id)
+    const makeAdmin = !editorUserIds.has(player.userId)
     try {
-      await setPlayerAdminRow(player.id, makeAdmin)
-      setAdminPlayerIds((prev) => {
+      await setPlayerAdminRow(player.userId, makeAdmin)
+      setEditorUserIds((prev) => {
         const next = new Set(prev)
-        if (makeAdmin) next.add(player.id)
-        else next.delete(player.id)
+        if (makeAdmin) next.add(player.userId)
+        else next.delete(player.userId)
         return next
       })
       pushToast(
-        makeAdmin ? `${player.pseudo} est maintenant administrateur.` : `${player.pseudo} n'est plus administrateur.`,
+        makeAdmin ? `${player.pseudo} peut maintenant modifier le Comp Builder.` : `${player.pseudo} passe en lecture seule.`,
         'success'
       )
     } catch (err) {
       console.error(err)
-      pushToast("Impossible de modifier les droits d'administrateur.", 'error')
+      pushToast("Impossible de modifier ce droit. Seul le capitaine peut nommer les éditeurs.", 'error')
     }
   }
 
@@ -149,16 +149,9 @@ export default function Team() {
     const player = players[confirmDeleteId]
     setConfirmDeleteId(null)
     await unassignPlayerEverywhere(confirmDeleteId)
-    // Un joueur relié à un compte Discord doit être banni en plus d'être
-    // supprimé : supprimer sa fiche seule ne l'empêche pas de réapparaître
-    // tout seul à sa prochaine connexion (voir ban_and_remove_player côté
-    // base). Une fiche créée à la main (pas de discordId) n'a pas ce
-    // problème, un simple delete suffit.
-    if (player?.discordId) {
-      await banAndRemovePlayer(confirmDeleteId)
-    } else {
-      await deletePlayer(confirmDeleteId)
-    }
+    // Seules les fiches ajoutées à la main se suppriment ici : un membre
+    // de l'équipe se retire depuis « Mon équipe » sur le site du réseau.
+    await deletePlayer(confirmDeleteId)
     pushToast(`${player?.pseudo || 'Joueur'} retiré de l'effectif.`, 'success')
   }
 
@@ -168,7 +161,11 @@ export default function Team() {
         <div>
           <span className="home__eyebrow">Effectif</span>
           <h1 className="team-page__title">Votre équipe</h1>
-          <p>Gérez les joueurs, leurs rôles et leur couleur d'identification.</p>
+          <p>
+            Les membres de {team?.name || "l'équipe"} arrivent ici automatiquement. Réglez leurs rôles et leur
+            couleur, ou ajoutez un coach ou un remplaçant hors réseau.{' '}
+            <a href={networkUrl('#/mon-equipe')}>Gérer le roster sur le réseau</a>
+          </p>
         </div>
         {isAdmin && (
           <button className="btn btn-primary" onClick={openCreate}>
@@ -179,7 +176,8 @@ export default function Team() {
 
       {!isAdmin && (
         <div className="team-page__readonly-notice">
-          Mode consultation — connectez-vous en tant qu'administrateur pour modifier l'effectif.
+          Lecture seule : le capitaine et les éditeurs qu'il nomme peuvent modifier. Tu peux quand même régler
+          tes propres rôles et ta couleur.
         </div>
       )}
 
@@ -243,37 +241,40 @@ export default function Team() {
                       <span className="player-card__no-role">Aucun rôle défini</span>
                     )}
                   </div>
-                  {isAdmin && !player.discordId && (
-                    <span className="player-card__no-role" title="Fiche créée à la main, pas encore reliée à un compte Discord">
-                      Sans compte Discord
+                  {player.userId && player.userId === captainId && (
+                    <span className="player-card__no-role">Capitaine</span>
+                  )}
+                  {player.userId && player.userId !== captainId && editorUserIds.has(player.userId) && (
+                    <span className="player-card__no-role">Éditeur</span>
+                  )}
+                  {!player.userId && (
+                    <span className="player-card__no-role" title="Fiche ajoutée à la main, pas membre de l'équipe sur le réseau">
+                      Hors réseau
                     </span>
                   )}
                 </div>
-                {isAdmin && (
+                {(isAdmin || player.userId === user?.id) && (
                   <div className="player-card__actions">
-                    {player.userId && (
+                    {isCaptain && player.userId && player.userId !== captainId && (
                       <button
                         type="button"
                         className={`btn btn-ghost btn-icon player-card__admin-btn ${
-                          adminPlayerIds.has(player.id) ? 'player-card__admin-btn--active' : ''
+                          editorUserIds.has(player.userId) ? 'player-card__admin-btn--active' : ''
                         }`}
                         onClick={() => handleToggleAdmin(player)}
-                        disabled={player.userId === user?.id}
                         title={
-                          player.userId === user?.id
-                            ? 'Vous ne pouvez pas modifier vos propres droits administrateur'
-                            : adminPlayerIds.has(player.id)
-                              ? 'Administrateur — cliquer pour retirer ce droit'
-                              : 'Rendre administrateur'
+                          editorUserIds.has(player.userId)
+                            ? 'Éditeur : peut modifier le Comp Builder. Cliquer pour retirer'
+                            : 'Nommer éditeur (peut modifier compos, matchs et effectif)'
                         }
                         aria-label={
-                          adminPlayerIds.has(player.id)
-                            ? `Retirer les droits administrateur à ${player.pseudo}`
-                            : `Rendre ${player.pseudo} administrateur`
+                          editorUserIds.has(player.userId)
+                            ? `Retirer le droit d'édition à ${player.pseudo}`
+                            : `Nommer ${player.pseudo} éditeur`
                         }
-                        aria-pressed={adminPlayerIds.has(player.id)}
+                        aria-pressed={editorUserIds.has(player.userId)}
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill={adminPlayerIds.has(player.id) ? 'currentColor' : 'none'}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill={editorUserIds.has(player.userId) ? 'currentColor' : 'none'}>
                           <path
                             d="M12 2.5 14.6 8.6l6.6.6-5 4.4 1.5 6.5L12 16.9l-5.7 3.2 1.5-6.5-5-4.4 6.6-.6Z"
                             stroke="currentColor"
@@ -288,6 +289,7 @@ export default function Team() {
                         <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
                       </svg>
                     </button>
+                    {isAdmin && !player.userId && (
                     <button
                       className="btn btn-ghost btn-icon"
                       onClick={() => setConfirmDeleteId(player.id)}
@@ -297,6 +299,7 @@ export default function Team() {
                         <path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -400,9 +403,7 @@ export default function Team() {
         open={Boolean(confirmDeleteId)}
         title="Retirer ce joueur ?"
         description={
-          players[confirmDeleteId]?.discordId
-            ? "Il sera retiré de l'effectif, désassigné de toutes les compositions, et son compte Discord sera banni pour qu'il ne réapparaisse pas tout seul à sa prochaine connexion."
-            : "Il sera retiré de l'effectif et désassigné de toutes les compositions où il apparaissait."
+          "Cette fiche ajoutée à la main sera supprimée et retirée de toutes les compositions où elle apparaissait."
         }
         confirmLabel="Retirer"
         onConfirm={handleDelete}

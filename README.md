@@ -1,5 +1,20 @@
 # Comp Builder — Outil de préparation Valorant pour équipe e-sport
 
+> **Le Comp Builder fait maintenant partie du PRIZM Competitive Network.**
+> Il est servi depuis le dossier `compo/` du site du réseau
+> (`https://prizmesportcontact-arch.github.io/PRIZM---Competitive-Network/compo/`)
+> et utilise la base Supabase du réseau (« PRZM CN - Website »).
+> Chaque équipe inscrite sur le réseau a son propre Comp Builder : ses
+> données (tables `cb_*`) ne sont visibles que par ses membres. Le capitaine
+> peut modifier et nomme des « éditeurs » (étoile sur la page Équipe).
+> L'ancienne adresse `frosefox.github.io/CompoBuilder` redirige vers la
+> nouvelle. Le schéma SQL et les fonctions Discord vivent dans le dépôt du
+> réseau (`supabase/013_…`, `014_…`, `functions/cb-discord-*`).
+>
+> **Mettre à jour le site après une modif ici :** `npm run build`, puis
+> remplacer le dossier `compo/` du dépôt du réseau par le contenu de `dist/`.
+> Les sections ci-dessous décrivent l'ancienne installation autonome.
+
 Application web collaborative pour préparer les matchs d'une équipe
 Valorant : composer, suivre et documenter les compositions d'agents pour
 chaque map, avec joueurs assignés, statut de préparation et notes de
