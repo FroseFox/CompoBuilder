@@ -1,0 +1,247 @@
+/* ============================================
+   Habillage PRIZM Competitive Network
+   Le Comp Builder reprend l'identité de la partie « réseau » du site :
+   fond ardoise, accent ambre, Big Shoulders en titres majuscules,
+   Instrument Sans pour le texte, mono pour les petits libellés,
+   angles droits et boutons en biais comme le logo.
+   Chargé après global.css : il remplace les jetons et les styles de base.
+   ============================================ */
+
+:root,
+[data-theme='dark'],
+[data-theme='light'] {
+  --brand-red: #ffa043;
+  --brand-red-dim: #ffa043cc;
+  --brand-red-soft: rgba(255, 160, 67, 0.14);
+  --brand-red-glow: rgba(255, 160, 67, 0.3);
+  --accent-ink: #1a1006;
+
+  --accent-amber: #f2d45c;
+  --accent-amber-dim: #f2d45ccc;
+  --accent-amber-soft: rgba(242, 212, 92, 0.14);
+  --accent-amber-glow: rgba(242, 212, 92, 0.3);
+
+  --role-duelist: #ff6170;
+  --role-controller: #9b84ff;
+  --role-initiator: #f2d45c;
+  --role-sentinel: #4ade80;
+  --role-flex: #9aa3af;
+  --accent-emerald: #4ade80;
+  --accent-emerald-soft: rgba(74, 222, 128, 0.14);
+
+  --font-display: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
+  --font-body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --corner-cut: 10px;
+  --corner-cut-sm: 6px;
+
+  --bg-base: #0d1117;
+  --bg-elevated: #0d1117;
+  --bg-panel: #0d1117;
+  --bg-panel-solid: #0d1117;
+  --bg-hover: #161b23;
+  --border-subtle: #29303b;
+  --border-strong: #5a6575;
+  --text-primary: #eef0f3;
+  --text-secondary: #9aa3af;
+  --text-tertiary: #7d8794;
+  --shadow-soft: none;
+  --shadow-lift: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --ambient-glow-opacity: 0;
+  --overlay-scrim: rgba(5, 7, 10, 0.78);
+  --frame-color: rgba(255, 160, 67, 0.35);
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--bg-base);
+}
+
+body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Pas de halo coloré : le site est à plat */
+body::before,
+.app-layout__main::before {
+  display: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+
+h3,
+h4 {
+  font-weight: 800;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-red);
+  outline-offset: 3px;
+}
+
+.container {
+  max-width: 1120px;
+  padding: 0 max(16px, env(safe-area-inset-left, 0px));
+}
+
+/* Libellés au-dessus des titres : police mono grise, comme le site */
+.eyebrow,
+.home__eyebrow {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+}
+
+.eyebrow::before,
+.home__eyebrow::before {
+  display: none;
+}
+
+/* Panneaux : fond plat, filet fin, angles droits */
+.glass-panel {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.cut-corner,
+.cut-corner-sm {
+  clip-path: none;
+}
+
+/* Boutons : majuscules, biais du logo */
+.btn,
+.btn-primary,
+.btn-ghost,
+.btn-danger {
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.btn-primary {
+  background: var(--brand-red);
+  border-color: var(--brand-red);
+  color: var(--accent-ink);
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+.btn-primary:hover {
+  background: #ffb36a;
+  border-color: #ffb36a;
+  color: var(--accent-ink);
+  box-shadow: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1.5px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.btn-ghost:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-secondary);
+}
+
+.btn-icon {
+  border-color: transparent;
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1.5px solid #ff6170;
+  color: #ff6170;
+}
+
+.btn-danger:hover {
+  background: #ff6170;
+  color: #0d1117;
+}
+
+/* Puces de filtre : comme les filtres de scrims du site */
+.filter-chip {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.filter-chip--active {
+  background: var(--brand-red);
+  border-color: var(--brand-red);
+  color: var(--accent-ink);
+}
+
+/* Champs */
+input,
+select,
+textarea {
+  border-radius: 0;
+  font-family: var(--font-body);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-red);
+}
+
+kbd {
+  border-radius: 0;
+}
+
+/* Barre de progression et pastilles */
+.progress-bar,
+.progress-bar__fill,
+.status-badge,
+.role-badge {
+  border-radius: 0;
+}
+
+/* Fenêtres modales */
+.confirm-dialog,
+.player-form,
+.compare-modal,
+.agent-modal,
+.gsearch {
+  border-radius: 0;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+}
+
+.toast {
+  border-radius: 0;
+}
+
+/* Toutes les pages alignées sur la même colonne que l'en-tête */
+main.container,
+.container.dashboard,
+.container.editor__banner-content {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}

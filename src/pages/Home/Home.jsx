@@ -6,7 +6,6 @@ import { summarizeMap } from '../../utils/compositions'
 import MapCard from '../../components/MapCard/MapCard'
 import { MapCardSkeletonGrid } from '../../components/Skeleton/Skeleton'
 import FilterBar, { FILTERS, SORTS } from '../../components/FilterBar/FilterBar'
-import IntroSplash from '../../components/IntroSplash/IntroSplash'
 import './Home.css'
 
 export default function Home() {
@@ -63,17 +62,8 @@ export default function Home() {
 
   return (
     <main className="home">
-      <IntroSplash />
       <section className="home__hero container">
-        <span className="home__eyebrow">Préparation d'équipe</span>
-        <h1 className="home__title">
-          Vos <span className="home__title-accent">compositions</span>, prêtes
-          pour chaque match.
-        </h1>
-        <p className="home__subtitle">
-          Retrouvez en un coup d'œil vos compositions par map, leur statut et
-          les joueurs assignés — le tout sauvegardé automatiquement, en local.
-        </p>
+        <h1 className="home__title">Pool de maps</h1>
         {status === 'ready' && maps.length > 0 && (
           <div className="home__progress">
             <div className="home__progress-bar">
@@ -83,7 +73,7 @@ export default function Home() {
               />
             </div>
             <span className="home__progress-text">
-              <strong>{totalComplete}</strong> / {maps.length} maps avec une composition complète
+              <strong>{totalComplete}</strong> / {maps.length} maps avec une compo complète
             </span>
           </div>
         )}

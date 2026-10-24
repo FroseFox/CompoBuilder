@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './styles/global.css'
+import './styles/prizm.css'
 import { NETWORK_PUBLIC_URL } from './services/team'
 
 // L'ancienne adresse du Comp Builder renvoie vers sa nouvelle place,

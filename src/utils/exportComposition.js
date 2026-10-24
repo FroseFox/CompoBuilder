@@ -21,14 +21,14 @@
 import { STATUS, STATUS_META } from './storage'
 
 const ROLE_COLORS = {
-  Duelliste: '#ff5f6d',
-  Duelist: '#ff5f6d',
-  Contrôleur: '#7c8cff',
-  Controller: '#7c8cff',
-  Initiateur: '#ffb54c',
-  Initiator: '#ffb54c',
-  Sentinelle: '#3ddc97',
-  Sentinel: '#3ddc97',
+  Duelliste: '#ff6170',
+  Duelist: '#ff6170',
+  Contrôleur: '#9b84ff',
+  Controller: '#9b84ff',
+  Initiateur: '#f2d45c',
+  Initiator: '#f2d45c',
+  Sentinelle: '#4ade80',
+  Sentinel: '#4ade80',
 }
 
 // STATUS_META[...].color est désormais une référence CSS (var(--role-*)),
@@ -41,27 +41,27 @@ const ROLE_COLORS = {
 // -duelist/-flex), pour que le statut d'une composition ait rigoureusement
 // la même couleur sur le site et sur l'image envoyée à l'équipe.
 const STATUS_CANVAS_COLORS = {
-  [STATUS.VALIDATED]: '#3ddc97', // --role-sentinel
-  [STATUS.TESTING]: '#ffb54c', // --role-initiator
-  [STATUS.NEEDS_WORK]: '#ff5f6d', // --role-duelist
-  [STATUS.TODO]: '#c7cdd6', // --role-flex
+  [STATUS.VALIDATED]: '#4ade80', // --role-sentinel
+  [STATUS.TESTING]: '#f2d45c', // --role-initiator
+  [STATUS.NEEDS_WORK]: '#ff6170', // --role-duelist
+  [STATUS.TODO]: '#9aa3af', // --role-flex
 }
 
 // Couleurs de fond/panneau/bordure — copiées exactement de --bg-base,
 // --bg-panel-solid et --border-subtle (thème sombre, variables.css).
 // Le canvas ne peut pas lire les tokens CSS, donc dupliquées ici ; le
 // commentaire vaut mise en garde si la palette du site change un jour.
-const CANVAS_BG = '#0a0e14'
-const CANVAS_PANEL = '#131a23'
-const CANVAS_BORDER = 'rgba(255, 255, 255, 0.09)'
+const CANVAS_BG = '#0d1117'
+const CANVAS_PANEL = '#161b23'
+const CANVAS_BORDER = '#29303b'
 
 // Piles de secours alignées sur --font-display/--font-body de
 // variables.css : si Barlow Condensed/Inter n'ont pas fini de charger
 // (ou échouent à charger), le canvas doit retomber sur une police sans
 // empattement — jamais sur le serif générique par défaut du canvas, qui
 // détonnerait complètement avec l'identité du site.
-const FONT_DISPLAY = '"Barlow Condensed", sans-serif'
-const FONT_BODY = '"Inter", sans-serif'
+const FONT_DISPLAY = '"Big Shoulders Display", "Arial Narrow", sans-serif'
+const FONT_BODY = '"Instrument Sans", sans-serif'
 
 // Exportée pour être réutilisée par matchCard.js (vignettes de map).
 export function loadImage(src) {
@@ -215,15 +215,15 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
     // Voile dégradé horizontal : texte bien lisible côté gauche (où il
     // est posé), image qui respire côté droit.
     const scrim = ctx.createLinearGradient(0, 0, W, 0)
-    scrim.addColorStop(0, 'rgba(10, 14, 20, 0.94)')
-    scrim.addColorStop(0.55, 'rgba(10, 14, 20, 0.7)')
-    scrim.addColorStop(1, 'rgba(10, 14, 20, 0.22)')
+    scrim.addColorStop(0, 'rgba(13, 17, 23, 0.94)')
+    scrim.addColorStop(0.55, 'rgba(13, 17, 23, 0.7)')
+    scrim.addColorStop(1, 'rgba(13, 17, 23, 0.22)')
     ctx.fillStyle = scrim
     ctx.fillRect(0, 0, W, dividerY)
     // Fondu vers le bas du bandeau, pour une transition propre avec le
     // reste de la carte plutôt qu'un bord net sur la ligne de séparation.
     const fade = ctx.createLinearGradient(0, dividerY - 46, 0, dividerY)
-    fade.addColorStop(0, 'rgba(10, 14, 20, 0)')
+    fade.addColorStop(0, 'rgba(13, 17, 23, 0)')
     fade.addColorStop(1, CANVAS_BG)
     ctx.fillStyle = fade
     ctx.fillRect(0, dividerY - 46, W, 46)
@@ -231,23 +231,23 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
 
   // Lueur de marque — toujours présente, image de map ou non.
   const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 520)
-  glow.addColorStop(0, 'rgba(255,70,85,0.16)')
-  glow.addColorStop(1, 'rgba(255,70,85,0)')
+  glow.addColorStop(0, 'rgba(255,160,67,0.16)')
+  glow.addColorStop(1, 'rgba(255,160,67,0)')
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, W, 240)
 
   // ---------- En-tête ----------
-  ctx.fillStyle = '#ff4655'
+  ctx.fillStyle = '#ffa043'
   ctx.font = `700 13px ${FONT_DISPLAY}`
   setLetterSpacing(ctx, 1)
   ctx.fillText('— COMP BUILDER', 40, 42)
   resetLetterSpacing(ctx)
 
-  ctx.fillStyle = '#ece8e1'
+  ctx.fillStyle = '#eef0f3'
   ctx.font = `800 36px ${FONT_DISPLAY}`
   ctx.fillText((map?.name || 'Map').toUpperCase(), 40, 86)
 
-  ctx.fillStyle = '#97a3ad'
+  ctx.fillStyle = '#9aa3af'
   ctx.font = `600 16px ${FONT_BODY}`
   ctx.fillText(composition.name, 40, 110)
 
@@ -337,7 +337,7 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
       drawImageCover(ctx, img, x + 8 - bleed, rowY - bleed, slotW + bleed * 2, slotH + bleed * 2)
       ctx.filter = 'none'
       ctx.globalAlpha = 1
-      ctx.fillStyle = 'rgba(19, 26, 35, 0.78)' // --bg-panel, comme le fond translucide de .agent-slot
+      ctx.fillStyle = 'rgba(22, 27, 35, 0.85)' // --bg-panel, comme le fond translucide de .agent-slot
       ctx.fillRect(x + 8 - bleed, rowY - bleed, slotW + bleed * 2, slotH + bleed * 2)
       ctx.restore()
     } else {
@@ -360,7 +360,7 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
     if (img) {
       ctx.drawImage(img, cx - iconSize / 2, iconY, iconSize, iconSize)
     } else if (agent) {
-      ctx.fillStyle = '#5c6a76'
+      ctx.fillStyle = '#7d8794'
       ctx.font = `800 34px ${FONT_DISPLAY}`
       ctx.textAlign = 'center'
       ctx.fillText(agent.name[0], cx, iconY + iconSize / 2 + 12)
@@ -368,12 +368,12 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
     ctx.restore()
 
     ctx.textAlign = 'center'
-    ctx.fillStyle = '#ece8e1'
+    ctx.fillStyle = '#eef0f3'
     ctx.font = `700 17px ${FONT_DISPLAY}`
     ctx.fillText(agent ? agent.name : 'Vide', cx, iconY + iconSize + 29)
 
     if (agent) {
-      const roleColor = ROLE_COLORS[agent.role?.name] || '#c7cdd6'
+      const roleColor = ROLE_COLORS[agent.role?.name] || '#9aa3af'
       ctx.fillStyle = roleColor
       ctx.font = `700 11px ${FONT_DISPLAY}`
       setLetterSpacing(ctx, 0.8)
@@ -389,7 +389,7 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
 
     ctx.font = `600 13px ${FONT_BODY}`
     const playerLabel = player ? player.pseudo : 'Aucun joueur'
-    const playerColor = player ? player.color || '#97a3ad' : '#5c6a76'
+    const playerColor = player ? player.color || '#9aa3af' : '#7d8794'
     const textWidth = ctx.measureText(playerLabel).width
     const dotR = player ? 4 : 0
     const gap = player ? 8 : 0
@@ -401,12 +401,12 @@ export async function renderCompositionCard({ map, composition, agentByUuid, pla
       ctx.fill()
     }
     ctx.textAlign = 'left'
-    ctx.fillStyle = player ? '#97a3ad' : '#5c6a76'
+    ctx.fillStyle = player ? '#9aa3af' : '#7d8794'
     ctx.fillText(playerLabel, blockStart + dotR * 2 + gap, iconY + iconSize + 86)
   })
 
   ctx.textAlign = 'right'
-  ctx.fillStyle = '#5c6a76'
+  ctx.fillStyle = '#7d8794'
   ctx.font = `500 12px ${FONT_BODY}`
   const dateStr = new Date().toLocaleDateString('fr-FR')
   const footerVerb = mode === 'vote' ? 'Vote lancé le' : 'Généré le'

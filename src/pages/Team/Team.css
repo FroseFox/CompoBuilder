@@ -1,5 +1,5 @@
 .team-page {
-  padding: var(--space-7) var(--space-5) var(--space-8);
+  padding: var(--space-7) max(16px, env(safe-area-inset-left, 0px)) var(--space-8);
 }
 
 .team-page__header {
