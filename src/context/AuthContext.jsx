@@ -20,6 +20,10 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const userIdRef = useRef(null)
+  const sessionRef = useRef(null)
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
 
   const loadContext = useCallback(async (sess) => {
     if (!sess?.user) {
@@ -83,14 +87,14 @@ export function AuthProvider({ children }) {
       .channel(`cb-team-${teamId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_pulse', filter: `topic=eq.team:${teamId}` }, () => {
         clearTimeout(timer)
-        timer = setTimeout(() => loadContext(session), 500)
+        timer = setTimeout(() => loadContext(sessionRef.current), 500)
       })
       .subscribe()
     return () => {
       clearTimeout(timer)
       supabase.removeChannel(channel)
     }
-  }, [teamId, session, loadContext])
+  }, [teamId, loadContext])
 
   // Connexion : on passe par le site du réseau (adresse déjà autorisée
   // chez Supabase), qui nous renvoie ici une fois connecté.
