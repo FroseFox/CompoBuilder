@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext'
 import { PLAYER_COLORS, FLEX_ROLE } from '../../utils/storage'
 import { fetchTeamAccess, setPlayerAdminRow } from '../../services/db'
 import { networkUrl } from '../../services/team'
+import { importLegacyData } from '../../services/importLegacy'
 import PlayerAvatar from '../../components/PlayerAvatar/PlayerAvatar'
 import RoleBadge from '../../components/RoleBadge/RoleBadge'
 import ConfirmDialog from '../../components/ConfirmDialog/ConfirmDialog'
@@ -30,7 +31,7 @@ const ROLE_ACCENT = {
 export default function Team() {
   const { agents } = useData()
   const { players, addPlayer, updatePlayer, deletePlayer } = usePlayers()
-  const { unassignPlayerEverywhere } = useCompositions()
+  const { unassignPlayerEverywhere, compositionsByMap } = useCompositions()
   const { isAdmin, isCaptain, user, team } = useAuth()
   const { pushToast } = useToast()
 
@@ -77,6 +78,29 @@ export default function Team() {
     } catch (err) {
       console.error(err)
       pushToast("Impossible de modifier ce droit. Seul le capitaine peut nommer les éditeurs.", 'error')
+    }
+  }
+
+  // Reprise des données de l'ancien Comp Builder (une seule fois)
+  const [legacyKey, setLegacyKey] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importMsg, setImportMsg] = useState('')
+  const handleImport = async () => {
+    if (importing) return
+    const existing = Object.values(compositionsByMap).reduce((n, b) => n + Object.keys(b || {}).length, 0)
+    if (existing > 0 && !window.confirm(`Il y a déjà ${existing} composition(s). Les anciennes seront ajoutées en plus. Continuer ?`)) return
+    setImporting(true)
+    setImportMsg('')
+    try {
+      const r = await importLegacyData({ key: legacyKey, onProgress: setImportMsg })
+      setImportMsg(`Terminé : ${r.compositions} compositions et ${r.players} joueurs repris.`)
+      setLegacyKey('')
+      pushToast('Anciennes compositions importées.', 'success')
+    } catch (err) {
+      console.error(err)
+      setImportMsg(err.message || 'Import impossible.')
+    } finally {
+      setImporting(false)
     }
   }
 
@@ -398,6 +422,31 @@ export default function Team() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {isAdmin && (
+        <details className="team-page__import glass-panel">
+          <summary>Reprendre les compos de l'ancien Comp Builder</summary>
+          <p>
+            À faire une seule fois. Dans l'ancien projet Supabase : Project Settings → API Keys, copie la clé
+            « anon public » et colle-la ici. Les compositions et l'effectif sont copiés, l'ancien projet n'est
+            pas modifié.
+          </p>
+          <div className="team-page__import-row">
+            <input
+              type="password"
+              autoComplete="off"
+              placeholder="Clé anon de l'ancien projet"
+              aria-label="Clé anon de l'ancien projet"
+              value={legacyKey}
+              onChange={(e) => setLegacyKey(e.target.value)}
+            />
+            <button type="button" className="btn btn-ghost" onClick={handleImport} disabled={!legacyKey.trim() || importing}>
+              {importing ? 'Import…' : 'Importer'}
+            </button>
+          </div>
+          {importMsg && <p role="status">{importMsg}</p>}
+        </details>
+      )}
 
       <ConfirmDialog
         open={Boolean(confirmDeleteId)}

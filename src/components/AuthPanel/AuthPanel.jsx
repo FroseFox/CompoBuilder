@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { usePlayers } from '../../context/PlayersContext'
@@ -115,9 +114,6 @@ export default function AuthPanel() {
             )}
 
             {team && <p className="auth-panel__popover-hint">Équipe : <strong>{team.name}</strong></p>}
-            <Link to="/disponibilites" className="btn btn-ghost auth-panel__popover-link" onClick={() => setOpen(false)}>
-              Mes disponibilités
-            </Link>
             <a href={networkUrl('#/espace')} className="btn btn-ghost auth-panel__popover-link">
               Espace équipe du réseau
             </a>

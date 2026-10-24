@@ -34,7 +34,7 @@ export default function TeamGate({ children }) {
           <span className="eyebrow">PRIZM Competitive Network</span>
           <h1 className="team-gate__title">Comp Builder</h1>
           <p className="team-gate__lead">
-            Les compos par map, le planning des matchs et les dispos de ton équipe, au même endroit.
+            Les compos de ton équipe, map par map : agents, joueurs, statut et notes de stratégie.
             Chaque équipe du réseau a son propre espace, visible seulement par ses joueurs.
           </p>
           <button type="button" className="btn btn-primary team-gate__cta" onClick={login} disabled={busy}>

@@ -1,57 +1,29 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Link, NavLink, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { Link, NavLink } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useTheme } from '../../context/ThemeContext'
 import { useSound } from '../../context/SoundContext'
 import { useAuth } from '../../context/AuthContext'
-import { useCompositions } from '../../context/CompositionsContext'
-import { useToast } from '../../context/ToastContext'
-import { useEscapeToClose } from '../../hooks/useEscapeToClose'
-import { useMediaQuery } from '../../hooks/useMediaQuery'
-import ConfirmDialog from '../ConfirmDialog/ConfirmDialog'
 import GlobalSearch from '../GlobalSearch/GlobalSearch'
 import AuthPanel from '../AuthPanel/AuthPanel'
-import TeamSettingsModal from '../TeamSettingsModal/TeamSettingsModal'
-import InstallAppButton from '../InstallAppButton/InstallAppButton'
 import { networkUrl } from '../../services/team'
 import './Navbar.css'
 
-// Onglets du quotidien, toujours visibles. Les autres (consultés plus
-// ponctuellement) vivent sous le menu déroulant "Plus" — voir
-// MORE_NAV_ITEMS et NavMoreMenu ci-dessous — pour ne pas surcharger la
-// barre à mesure que le site gagne des pages. Même comportement en
-// desktop (popover positionné sous le déclencheur) et en mobile (le
-// popover s'ouvre par-dessus le reste du panneau déroulant) : un seul
-// composant, pas de liste à plat dupliquée.
+// Le Comp Builder ne garde que ce qui sert aux compos : les maps, l'effectif
+// pour assigner les joueurs, et l'avancement. Scrims, classement et stats
+// vivent sur le site du réseau.
 const PRIMARY_NAV_ITEMS = [
   { to: '/', label: 'Maps', icon: MapsIcon, end: true },
   { to: '/team', label: 'Équipe', icon: TeamIcon },
-  { to: '/matchcenter', label: 'Match Center', icon: MatchIcon },
-]
-
-const MORE_NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { to: '/stats', label: 'Statistiques', icon: StatsIcon },
-  { to: '/disponibilites', label: 'Dispos', icon: ClockIcon },
+  { to: '/dashboard', label: 'Avancement', icon: DashboardIcon },
 ]
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme()
   const { enabled: soundEnabled, toggleSound } = useSound()
-  const { isAdmin, team } = useAuth()
-  const { resetAll } = useCompositions()
-  const { pushToast } = useToast()
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const { team } = useAuth()
   const [searchOpen, setSearchOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-
-  const handleResetAll = async () => {
-    await resetAll()
-    setConfirmOpen(false)
-    pushToast('Toutes les compositions ont été réinitialisées.', 'success')
-  }
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -113,8 +85,6 @@ export default function Navbar() {
               </NavLink>
             ))}
 
-            <NavMoreMenu onNavigate={() => setMobileMenuOpen(false)} />
-
             <div className="topnav__mobile-actions">
               <a className="btn btn-ghost" href={networkUrl('#/espace')}>
                 ← Espace équipe du réseau
@@ -125,29 +95,6 @@ export default function Navbar() {
               <button className="btn btn-ghost" onClick={toggleTheme}>
                 {theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
               </button>
-              <InstallAppButton variant="text" />
-              {isAdmin && (
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setSettingsOpen(true)
-                    setMobileMenuOpen(false)
-                  }}
-                >
-                  Réglages d'équipe
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  className="btn btn-danger"
-                  onClick={() => {
-                    setConfirmOpen(true)
-                    setMobileMenuOpen(false)
-                  }}
-                >
-                  Réinitialiser tout
-                </button>
-              )}
               <AuthPanel />
             </div>
           </nav>
@@ -184,8 +131,6 @@ export default function Navbar() {
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
 
-            <InstallAppButton variant="icon" />
-
             <a
               className="btn btn-ghost topnav__network"
               href={networkUrl('#/espace')}
@@ -196,23 +141,6 @@ export default function Navbar() {
               </svg>
               <span>Réseau</span>
             </a>
-
-            {isAdmin && (
-              <button
-                className="btn btn-ghost btn-icon topnav__icon-btn"
-                onClick={() => setSettingsOpen(true)}
-                aria-label="Réglages d'équipe"
-                title="Réglages d'équipe (webhook Discord)"
-              >
-                <SettingsIcon />
-              </button>
-            )}
-
-            {isAdmin && (
-              <button className="btn btn-danger topnav__reset" onClick={() => setConfirmOpen(true)}>
-                <span>Réinitialiser tout</span>
-              </button>
-            )}
 
             <AuthPanel />
 
@@ -239,188 +167,7 @@ export default function Navbar() {
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
 
-      <TeamSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Réinitialiser toutes les compositions ?"
-        description="Toutes les compositions enregistrées, pour toutes les maps, seront définitivement supprimées. L'effectif de joueurs n'est pas affecté. Cette action est irréversible."
-        confirmLabel="Tout réinitialiser"
-        onConfirm={handleResetAll}
-        onCancel={() => setConfirmOpen(false)}
-      />
     </>
-  )
-}
-
-/**
- * Onglet "Plus" : regroupe les pages consultées plus ponctuellement
- * (Dashboard, Statistiques, Dispos) derrière un menu déroulant, pour ne
- * pas surcharger la barre de nav à plat — voir MORE_NAV_ITEMS. Reste
- * actif visuellement (barre d'accent) quand une des pages qu'il
- * regroupe est la page courante, même repliée.
- *
- * Deux présentations bien différentes selon l'espace disponible, pas
- * juste une histoire de position :
- * - Desktop : un vrai popover flottant, rendu via un portail dans
- *   document.body plutôt qu'à sa place naturelle — le bouton vit dans
- *   .topnav__links, qui a besoin d'un défilement horizontal
- *   (overflow-x: auto) pour les écrans étroits, or poser overflow-x sans
- *   overflow-y force ce dernier à 'auto' aussi (règle CSS peu connue),
- *   ce qui aurait découpé net un panneau positionné en absolute à
- *   l'intérieur. Le portail contourne le problème ; sa position
- *   (calculée depuis le bouton à l'ouverture) le fait à la place.
- * - Mobile : le panneau déroulant plein écran est déjà une liste
- *   verticale en flux normal — un popover flottant par-dessus y
- *   chevaucherait les boutons juste en dessous (son/thème/réglages).
- *   Les 3 liens s'insèrent donc simplement en accordéon, dans le flux,
- *   juste sous "Plus" : ils poussent le reste vers le bas au lieu de
- *   le recouvrir.
- */
-function NavMoreMenu({ onNavigate }) {
-  const location = useLocation()
-  const isMobile = useMediaQuery('(max-width: 980px)')
-  const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState(null)
-  const triggerRef = useRef(null)
-  const popoverRef = useRef(null)
-
-  useEscapeToClose(open, () => setOpen(false))
-
-  // Clic en dehors : sur desktop, le déclencheur ET le panneau (rendus
-  // dans deux sous-arbres DOM différents à cause du portail) comptent
-  // tous les deux comme "dedans" — useClickOutside seul ne connaît
-  // qu'une ref. Sur mobile (pas de portail, panneau en flux normal),
-  // triggerRef seul suffirait déjà, mais cette version marche pour les deux.
-  useEffect(() => {
-    if (!open) return undefined
-    const handlePointerDown = (e) => {
-      if (triggerRef.current?.contains(e.target)) return
-      if (popoverRef.current?.contains(e.target)) return
-      setOpen(false)
-    }
-    document.addEventListener('mousedown', handlePointerDown)
-    return () => document.removeEventListener('mousedown', handlePointerDown)
-  }, [open])
-
-  // Referme au changement mobile/desktop (plus simple qu'un recalcul
-  // fidèle de la position du popover desktop) pendant que c'est ouvert.
-  useEffect(() => {
-    if (!open) return undefined
-    const handleResize = () => setOpen(false)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [open])
-
-  const isActive = MORE_NAV_ITEMS.some((item) => location.pathname === item.to)
-
-  const handleToggle = () => {
-    if (!open && !isMobile && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect()
-      const popoverWidth = 190
-      setCoords({
-        top: rect.bottom + 8,
-        left: Math.min(rect.left, window.innerWidth - popoverWidth - 8),
-      })
-    }
-    setOpen((o) => !o)
-  }
-
-  const handleNavigate = () => {
-    setOpen(false)
-    onNavigate?.()
-  }
-
-  const links = (linkClassName) =>
-    MORE_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-      <NavLink
-        key={to}
-        to={to}
-        className={({ isActive: linkActive }) => `${linkClassName} ${linkActive ? 'topnav__more-link--active' : ''}`}
-        onClick={handleNavigate}
-      >
-        <Icon />
-        <span>{label}</span>
-      </NavLink>
-    ))
-
-  return (
-    <div className="topnav__more">
-      <button
-        type="button"
-        ref={triggerRef}
-        className={`topnav__link topnav__more-trigger ${isActive ? 'topnav__link--active' : ''}`}
-        onClick={handleToggle}
-        aria-expanded={open}
-        aria-haspopup="true"
-      >
-        <span className="topnav__link-content">
-          <MoreIcon />
-          <span>Plus</span>
-          <ChevronIcon className={`topnav__more-chevron ${open ? 'topnav__more-chevron--open' : ''}`} />
-        </span>
-        {isActive && (
-          <motion.span
-            className="topnav__link-bar"
-            layoutId="topnav-active-bar"
-            transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-          />
-        )}
-      </button>
-
-      {isMobile ? (
-        <AnimatePresence initial={false}>
-          {open && (
-            <motion.div
-              ref={popoverRef}
-              className="topnav__more-inline"
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.14, ease: 'easeOut' }}
-            >
-              {links('topnav__more-link topnav__more-link--inline')}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      ) : (
-        createPortal(
-          <AnimatePresence>
-            {open && coords && (
-              <motion.div
-                ref={popoverRef}
-                className="topnav__more-popover glass-panel"
-                style={{ top: coords.top, left: coords.left }}
-                initial={{ opacity: 0, y: -8, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 30 } }}
-                exit={{ opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.12 } }}
-              >
-                {links('topnav__more-link')}
-              </motion.div>
-            )}
-          </AnimatePresence>,
-          document.body
-        )
-      )}
-    </div>
-  )
-}
-
-function MoreIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <circle cx="5" cy="12" r="1.6" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-      <circle cx="19" cy="12" r="1.6" fill="currentColor" />
-    </svg>
-  )
-}
-
-function ChevronIcon({ className }) {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   )
 }
 
@@ -451,45 +198,6 @@ function DashboardIcon() {
     </svg>
   )
 }
-function MatchIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M4 5h16v10H4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M9 19h6M12 15v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
-function StatsIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M4 20V10M12 20V4M20 20v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function ClockIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M12 7v5.5l3.8 2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M19.4 13.5a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V19.5a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H4.5a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H10a1.65 1.65 0 0 0 1-1.51V4.5a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V10c.36.62 1 1 1.51 1H19.5a2 2 0 1 1 0 4h-.09c-.62 0-1.15.38-1.51 1Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 function SoundOnIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">

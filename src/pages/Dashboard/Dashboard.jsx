@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useData } from '../../context/DataContext'
 import { useCompositions } from '../../context/CompositionsContext'
-import { useAuth } from '../../context/AuthContext'
 import { computeDashboardStats, getCompsForMap } from '../../utils/compositions'
 import { STATUS, STATUS_META } from '../../utils/storage'
 import ProgressBar from '../../components/ProgressBar/ProgressBar'
@@ -24,7 +23,6 @@ const STAT_ICON = {
 export default function Dashboard() {
   const { maps, status } = useData()
   const { compositionsByMap } = useCompositions()
-  const { profile } = useAuth() || {}
 
   const stats = useMemo(
     () => computeDashboardStats(compositionsByMap, maps),
@@ -58,11 +56,9 @@ export default function Dashboard() {
   return (
     <main className="dashboard container">
       <div className="dashboard__header">
-        <span className="eyebrow dashboard__eyebrow">Vue d'ensemble</span>
-        <h1 className="dashboard__title">
-          Bonjour{profile?.displayName ? ` ${profile.displayName}` : ''} <span aria-hidden="true">👋</span>
-        </h1>
-        <p>L'état de préparation de votre équipe, map par map.</p>
+        <span className="eyebrow dashboard__eyebrow">Avancement</span>
+        <h1 className="dashboard__title">Préparation des maps</h1>
+        <p>Où en sont les compos de l'équipe, map par map.</p>
       </div>
 
       <div className="dashboard__hero">

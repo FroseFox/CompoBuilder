@@ -4,12 +4,9 @@ import { AnimatePresence, MotionConfig } from 'framer-motion'
 import { ThemeProvider } from './context/ThemeContext'
 import { SoundProvider } from './context/SoundContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { SettingsProvider } from './context/SettingsContext'
 import { DataProvider } from './context/DataContext'
 import { CompositionsProvider } from './context/CompositionsContext'
 import { PlayersProvider } from './context/PlayersContext'
-import { MatchesProvider } from './context/MatchesContext'
-import { AvailabilityProvider } from './context/AvailabilityContext'
 import { ToastProvider } from './context/ToastContext'
 import { isSupabaseConfigured } from './services/supabaseClient'
 import Navbar from './components/Navbar/Navbar'
@@ -26,9 +23,6 @@ const Home = lazy(() => import('./pages/Home/Home'))
 const Editor = lazy(() => import('./pages/Editor/Editor'))
 const Team = lazy(() => import('./pages/Team/Team'))
 const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'))
-const MatchCenter = lazy(() => import('./pages/MatchCenter/MatchCenter'))
-const Stats = lazy(() => import('./pages/Stats/Stats'))
-const Availability = lazy(() => import('./pages/Availability/Availability'))
 
 /** Rendu à l'intérieur du HashRouter : gère la transition animée entre les pages. */
 function AppRoutes() {
@@ -52,9 +46,6 @@ function AppRoutes() {
         <Route path="/editor/:mapId" element={<PageTransition><Suspense fallback={pageFallback}><Editor /></Suspense></PageTransition>} />
         <Route path="/team" element={<PageTransition><Suspense fallback={pageFallback}><Team /></Suspense></PageTransition>} />
         <Route path="/dashboard" element={<PageTransition><Suspense fallback={pageFallback}><Dashboard /></Suspense></PageTransition>} />
-        <Route path="/matchcenter" element={<PageTransition><Suspense fallback={pageFallback}><MatchCenter /></Suspense></PageTransition>} />
-        <Route path="/stats" element={<PageTransition><Suspense fallback={pageFallback}><Stats /></Suspense></PageTransition>} />
-        <Route path="/disponibilites" element={<PageTransition><Suspense fallback={pageFallback}><Availability /></Suspense></PageTransition>} />
         {/* Toute URL inconnue renvoie vers l'accueil plutôt que sur une page blanche. */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -112,19 +103,13 @@ function SupabaseSetupNotice() {
 function TeamScopedApp() {
   const { team } = useAuth()
   return (
-    <SettingsProvider key={team.id}>
-      <DataProvider>
-        <PlayersProvider>
-          <AvailabilityProvider>
-            <CompositionsProvider>
-              <MatchesProvider>
-                <AppShell />
-              </MatchesProvider>
-            </CompositionsProvider>
-          </AvailabilityProvider>
-        </PlayersProvider>
-      </DataProvider>
-    </SettingsProvider>
+    <DataProvider key={team.id}>
+      <PlayersProvider>
+        <CompositionsProvider>
+          <AppShell />
+        </CompositionsProvider>
+      </PlayersProvider>
+    </DataProvider>
   )
 }
 

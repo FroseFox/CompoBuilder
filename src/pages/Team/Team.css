@@ -157,3 +157,32 @@
   border-color: var(--text-primary);
   box-shadow: 0 0 0 2px var(--bg-panel-solid);
 }
+
+.team-page__import {
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.team-page__import summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.team-page__import p {
+  margin: var(--space-3) 0;
+  line-height: 1.55;
+}
+
+.team-page__import-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.team-page__import-row input {
+  flex: 1 1 220px;
+  min-width: 0;
+}

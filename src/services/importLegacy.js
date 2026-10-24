@@ -6,6 +6,9 @@
 // publique) : il suffit de sa clé publique « anon » pour tout récupérer
 // depuis le navigateur. Rien n'est modifié ni supprimé là-bas.
 //
+// Seules les compositions et l'effectif sont repris (matchs, dispos et
+// Discord n'existent plus dans le Comp Builder du réseau).
+//
 // Les joueurs sont retrouvés par leur compte Discord : un ancien joueur
 // qui est aussi membre de l'équipe sur le réseau récupère ses rôles et
 // sa couleur ; les autres deviennent des fiches « hors réseau ».
@@ -41,7 +44,7 @@ const COLOR = /^#[0-9a-fA-F]{6}$/
 
 /**
  * @param {{ key: string, url?: string, onProgress?: (msg: string) => void }} params
- * @returns {Promise<{ players: number, compositions: number, matches: number, availability: number }>}
+ * @returns {Promise<{ players: number, compositions: number }>}
  */
 export async function importLegacyData({ key, url = LEGACY_URL, onProgress = () => {} }) {
   const teamId = getTeamId()
@@ -49,12 +52,9 @@ export async function importLegacyData({ key, url = LEGACY_URL, onProgress = () 
   if (!key) throw new Error('Colle la clé « anon public » de l\'ancien projet.')
 
   onProgress('Lecture de l\'ancien Comp Builder…')
-  const [oldPlayers, oldComps, oldMatches, oldMatchMaps, oldAvail] = await Promise.all([
+  const [oldPlayers, oldComps] = await Promise.all([
     legacyGet(url, key, 'players'),
     legacyGet(url, key, 'compositions'),
-    legacyGet(url, key, 'matches'),
-    legacyGet(url, key, 'match_maps'),
-    legacyGet(url, key, 'player_availability').catch(() => []),
   ])
 
   onProgress('Correspondance des joueurs…')
@@ -89,10 +89,8 @@ export async function importLegacyData({ key, url = LEGACY_URL, onProgress = () 
   await insertAll('cb_players', newPlayers)
 
   onProgress('Import des compositions…')
-  const compMap = new Map()
   const comps = oldComps.map((c) => {
     const id = crypto.randomUUID()
-    compMap.set(c.id, id)
     const slots = Array.from({ length: 5 }, (_, i) => {
       const s = (Array.isArray(c.slots) && c.slots[i]) || {}
       return { agentUuid: s.agentUuid || null, playerId: (s.playerId && playerMap.get(s.playerId)) || null }
@@ -112,47 +110,5 @@ export async function importLegacyData({ key, url = LEGACY_URL, onProgress = () 
   })
   await insertAll('cb_compositions', comps)
 
-  onProgress('Import des matchs…')
-  const matchMap = new Map()
-  const matches = oldMatches.map((m) => {
-    const id = crypto.randomUUID()
-    matchMap.set(m.id, id)
-    return {
-      id,
-      team_id: teamId,
-      opponent_name: clip(m.opponent_name, 60) || null,
-      type: m.type === 'scrim' ? 'scrim' : 'match',
-      format: ['bo1', 'bo3', 'bo5'].includes(m.format) ? m.format : 'bo1',
-      match_date: m.match_date,
-      match_time: m.match_time,
-      notes: clip(m.notes || '', 5000),
-      position: m.position || 0,
-      opponent_logo_url: clip(m.opponent_logo_url, 500) || null,
-      vod_url: clip(m.vod_url, 500) || null,
-      // Déjà passés : pas de rappel Discord renvoyé pour eux
-      reminder_sent_at: m.reminder_sent_at || (m.match_date && m.match_date < new Date().toISOString().slice(0, 10) ? new Date().toISOString() : null),
-      created_at: m.created_at,
-    }
-  })
-  await insertAll('cb_matches', matches)
-  const matchMaps = oldMatchMaps
-    .filter((mm) => matchMap.has(mm.match_id))
-    .map((mm) => ({
-      team_id: teamId,
-      match_id: matchMap.get(mm.match_id),
-      position: mm.position || 0,
-      map_uuid: mm.map_uuid,
-      composition_id: (mm.composition_id && compMap.get(mm.composition_id)) || null,
-      our_score: mm.our_score,
-      opponent_score: mm.opponent_score,
-    }))
-  await insertAll('cb_match_maps', matchMaps)
-
-  onProgress('Import des disponibilités…')
-  const avail = oldAvail
-    .filter((a) => playerMap.has(a.player_id))
-    .map((a) => ({ team_id: teamId, player_id: playerMap.get(a.player_id), date: a.date, period: a.period }))
-  await insertAll('cb_availability', avail, { ignoreDuplicates: true, onConflict: 'player_id,date,period' })
-
-  return { players: oldPlayers.length, compositions: comps.length, matches: matches.length, availability: avail.length }
+  return { players: oldPlayers.length, compositions: comps.length }
 }
